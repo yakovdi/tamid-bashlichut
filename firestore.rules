@@ -4,10 +4,10 @@ service cloud.firestore {
 
     // החלף את שתי הכתובות בכתובות האמיתיות (באותיות קטנות)
     function office() {
-      return request.auth != null && request.auth.token.email in ['office@example.com'];
+      return request.auth != null && request.auth.token.email in ['levchayale@gmail.com'];
     }
     function courier() {
-      return request.auth != null && request.auth.token.email in ['courier@example.com'];
+      return request.auth != null && request.auth.token.email in ['yakovfi@gmail.com'];
     }
 
     match /parcels/{id} {
