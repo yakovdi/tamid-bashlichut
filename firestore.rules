@@ -1,0 +1,26 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    // החלף את שתי הכתובות בכתובות האמיתיות (באותיות קטנות)
+    function office() {
+      return request.auth != null && request.auth.token.email in ['office@example.com'];
+    }
+    function courier() {
+      return request.auth != null && request.auth.token.email in ['courier@example.com'];
+    }
+
+    match /parcels/{id} {
+      allow read: if office() || courier();
+      allow create, delete: if office();
+      allow update: if office() || (courier() &&
+        request.resource.data.diff(resource.data).affectedKeys()
+          .hasOnly(['status', 'doneAt', 'photo', 'courierNote', 'log']));
+    }
+
+    match /settings/{id} {
+      allow read: if office() || courier();
+      allow write: if office();
+    }
+  }
+}
