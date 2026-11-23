@@ -59,13 +59,15 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 .thumbb{border:0;padding:0;background:none;cursor:pointer}.thumb{width:64px;height:64px;object-fit:cover;border-radius:10px;display:block;border:1px solid var(--line)}
 .pbtn{border:0;font-family:inherit;display:inline-block;margin:0;font-size:14px;font-weight:700;background:var(--tint);color:var(--ink);padding:8px 12px;border-radius:10px;cursor:pointer}
 .full{width:100%;border-radius:12px;display:block;margin:8px 0}
+.addrl{position:absolute;z-index:25;inset-inline:0;top:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.25)}.addrl button{display:block;width:100%;text-align:start;border:0;background:none;color:var(--ink);font:inherit;padding:10px;border-bottom:1px solid var(--line);cursor:pointer}
+.sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.sum div{background:var(--tint);border-radius:12px;padding:10px;text-align:center}.sum b{display:block;font-size:20px}.sum span{font-size:12px;color:var(--mute)}
 .local{background:var(--hi);color:#14213d;border-radius:10px;padding:6px 10px;font-size:13px;margin-bottom:10px}
 </style>
 </head>
 <body>
 <div class="wrap">
   <header>
-    <h1>משלוחים</h1>
+    <h1>משלוחים <span style="font-size:12px;color:var(--mute);font-weight:500">v<span id="verNum"></span></span></h1>
     <button class="btn sec" id="logout" style="display:none">התנתקות</button>
     <div class="seg" role="tablist"><button id="vOffice" role="tab">משרד</button><button id="vCourier" role="tab">שליח</button></div>
   </header>
@@ -78,6 +80,9 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
+var APP_VERSION="1.1.0";
+var CHANGELOG=[["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
+var GOOGLE_KEY="";
 var T={regular:"רגיל",double:"כפול",pickup:"איסוף",express:"מהיר",carton:"קרטון",cod:"גוביינה"};
 var RET=["double","pickup","cod"];
 var S={new:"חדש",picked:"נאסף",enroute:"בדרך ללקוח",done:"בוצע",returning:"בדרך חזרה למשרד",returned:"חזר למשרד"};
@@ -86,6 +91,7 @@ var LIMIT=5;               // ימי עסקים ליעד
 var WORKDAYS=[0,1,2,3,4];  // ראשון עד חמישי
 
 var DEFAULT_TPL="שלום {שם}, כאן שליח המשלוחים. החבילה שלך (מספר {מספר}) בדרך אליך. נא להיות זמינים בטלפון.";
+var DEFAULT_PRICES={regular:0,double:0,pickup:0,express:0,carton:0,cod:0},prices=Object.assign({},DEFAULT_PRICES),payments=[],canAdmin=true;
 var parcels=[], view="office", filter="active", db=null, localMode=false, tpl=DEFAULT_TPL;
 var canOffice=true;
 function fmt(t){return new Date(t).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}
@@ -103,9 +109,14 @@ function setCourierNote(id,v){
 function msgFor(p){return tpl.replace(/\{שם\}/g,p.name||"").replace(/\{מספר\}/g,p.number||"")}
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
-function flow(p){return RET.indexOf(p.type)>-1?["new","picked","enroute","done","returning","returned"]:["new","picked","enroute","done"]}
+function flow(p){if(p.type==="pickup")return ["new","enroute","done","returning","returned"];return RET.indexOf(p.type)>-1?["new","picked","enroute","done","returning","returned"]:["new","picked","enroute","done"]}
 function isFinal(p){var f=flow(p);return p.status===f[f.length-1]}
-function isStopped(p){return flow(p).indexOf(p.status)>=3}
+function isStopped(p){return ["done","returning","returned"].indexOf(p.status)>-1}
+function SL(p,st){return p.type==="pickup"&&st==="done"?"נאסף מהלקוח":S[st]}
+function ACTL(p,st){return p.type==="pickup"&&st==="done"?"נאסף מהלקוח":ACT[st]}
+function typeLabel(k){return k==="pickup"?"איסוף (חזור בלבד)":T[k]+(RET.indexOf(k)>-1?" (הלוך וחזור)":"")}
+function priceOf(p){return p.price!=null?p.price:(prices[p.type]||0)}
+function fm(n){return "₪"+(Math.round(n*100)/100).toLocaleString("he-IL")}
 function nextStatus(p){var f=flow(p),i=f.indexOf(p.status);return i>-1&&i<f.length-1?f[i+1]:null}
 
 function bizElapsed(from,to){
@@ -135,21 +146,21 @@ function links(p){
 function card(p,role){
   var t=timer(p),nx=nextStatus(p);
   var h='<div class="card '+t.cls+'"><div class="top"><div><div class="name">'+esc(p.name)+'</div>';
-  h+='<div class="tags"><span class="tag">#'+esc(p.number||"—")+'</span><span class="tag">'+T[p.type]+'</span>'+(RET.indexOf(p.type)>-1?'<span class="tag ret">הלוך וחזור</span>':'')+'<span class="tag">'+S[p.status]+'</span></div></div>';
+  h+='<div class="tags"><span class="tag">#'+esc(p.number||"—")+'</span><span class="tag">'+T[p.type]+'</span>'+(RET.indexOf(p.type)>-1?'<span class="tag ret">'+(p.type==="pickup"?'חזור בלבד':'הלוך וחזור')+'</span>':'')+'<span class="tag">'+SL(p,p.status)+'</span>'+(role==="office"?'<span class="tag">'+fm(priceOf(p))+'</span>':'')+'</div></div>';
   h+='<div class="timer '+t.cls+'">'+t.txt+'</div></div>';
   if(p.address)h+='<div>'+esc(p.address)+'</div>';
   h+=links(p);
   if(p.notes)h+='<div class="note">'+esc(p.notes)+'</div>';
   if(role==="courier")h+='<div class="sub" style="margin:8px 0 4px">הערת שליח</div><textarea rows="2" aria-label="הערת שליח" data-cn="'+p.id+'" placeholder="למשל: אין מענה, הושאר אצל שכן">'+esc(p.courierNote)+'</textarea>';
   else if(p.courierNote)h+='<div class="note"><b>הערת שליח:</b> '+esc(p.courierNote)+'</div>';
-  if(flow(p).indexOf(p.status)>=2){
+  if(["enroute","done","returning","returned"].indexOf(p.status)>-1){
     var okPhoto=typeof p.photo==="string"&&p.photo.indexOf("data:image/jpeg;base64,")===0;
     h+='<div class="row">'+(okPhoto?'<button class="thumbb" data-pv="'+p.id+'" aria-label="הצגת צילום מסירה"><img class="thumb" alt="צילום מסירה" src="'+p.photo+'"></button>':'')+'<button class="pbtn" data-pick="'+p.id+'">'+(okPhoto?'החלפת תמונה':'📷 הוספת צילום מסירה (לא חובה)')+'</button></div>';
   }
   h+='<div class="acts">';
-  if(nx)h+='<button class="btn" data-next="'+p.id+'">'+ACT[nx]+'</button>';
+  if(nx)h+='<button class="btn" data-next="'+p.id+'">'+ACTL(p,nx)+'</button>';
   if(role==="office"){
-    h+='<select aria-label="סטטוס" data-st="'+p.id+'">'+Object.keys(S).filter(function(k){return flow(p).indexOf(k)>-1}).map(function(k){return '<option value="'+k+'"'+(k===p.status?' selected':'')+'>'+S[k]+'</option>'}).join("")+'</select>';
+    h+='<select aria-label="סטטוס" data-st="'+p.id+'">'+Object.keys(S).filter(function(k){return flow(p).indexOf(k)>-1}).map(function(k){return '<option value="'+k+'"'+(k===p.status?' selected':'')+'>'+SL(p,k)+'</option>'}).join("")+'</select>';
     h+='<button class="btn sec" data-edit="'+p.id+'">עריכה</button>';
   }
   return h+'</div>'+histHtml(p)+'</div>';
@@ -171,7 +182,7 @@ function render(){
     var cnt=function(s){return parcels.filter(function(p){return p.status===s}).length};
     var tiles=[["active","פעילים",active.length],["late","באיחור",late],["new","חדשים",cnt("new")],["picked","נאספו",cnt("picked")],["enroute","בדרך ללקוח",cnt("enroute")],["returning","בדרך חזרה",cnt("returning")]];
     h+='<div class="tiles">'+tiles.map(function(x){return '<button class="tile'+(filter===x[0]?' on':'')+(x[0]==="late"&&x[2]?' bad':'')+'" data-f="'+x[0]+'"><b>'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div>';
-    h+='<div class="bar"><button class="btn" id="add" style="flex:1">+ משלוח חדש</button><button class="btn sec" id="msgset">הודעה</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>';
+    h+='<div class="bar"><button class="btn" id="add" style="flex:1">+ משלוח חדש</button><button class="btn sec" id="msgset">הודעה</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>'+(canAdmin?'<div class="bar"><button class="btn sec" id="finbtn" style="flex:1">💰 כספים</button><button class="btn sec" id="setbtn" style="flex:1">⚙ הגדרות</button></div>':'');
     var list;
     if(filter==="active")list=active;
     else if(filter==="late")list=active.filter(function(p){return timer(p).left<0});
@@ -201,7 +212,8 @@ function openForm(id){
   +'<label for="fAddr">כתובת</label><input id="fAddr" value="'+esc(p.address)+'" placeholder="רחוב, מספר, עיר">'
   +'<label for="fPhone">טלפון</label><input id="fPhone" type="tel" inputmode="tel" value="'+esc(p.phone)+'">'
   +'<label for="fNum">מספר חבילה</label><input id="fNum" value="'+esc(p.number)+'">'
-  +'<label for="fType">סוג משלוח</label><select class="f" id="fType">'+Object.keys(T).map(function(k){return '<option value="'+k+'"'+(k===p.type?' selected':'')+'>'+T[k]+(RET.indexOf(k)>-1?' (הלוך וחזור)':'')+'</option>'}).join("")+'</select>'
+  +'<label for="fType">סוג משלוח</label><select class="f" id="fType">'+Object.keys(T).map(function(k){return '<option value="'+k+'"'+(k===p.type?' selected':'')+'>'+typeLabel(k)+'</option>'}).join("")+'</select>'
+  +'<label for="fPrice">מחיר (₪)</label><input id="fPrice" type="number" inputmode="decimal" min="0" step="0.5" value="'+(id?priceOf(p):(prices[p.type]||0))+'">'
   +'<label for="fNotes">הערות</label><textarea id="fNotes" rows="2">'+esc(p.notes)+'</textarea>'
   +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="save" style="flex:1">שמירה</button><button class="btn sec" id="cancel">ביטול</button></div>'
   +(id?'<div style="margin-top:8px"><button class="btn del" id="del">מחיקת משלוח</button></div>':'')
@@ -214,16 +226,105 @@ function openForm(id){
     var before=id?[p.name,p.address,p.phone,p.number,p.type,p.notes].join("|"):"";
     var rec=id?Object.assign({},p):{id:"p"+Date.now(),status:"new",createdAt:Date.now()};
     rec.name=name;rec.address=document.getElementById("fAddr").value.trim();rec.phone=document.getElementById("fPhone").value.trim();
-    rec.number=document.getElementById("fNum").value.trim();rec.type=document.getElementById("fType").value;rec.notes=document.getElementById("fNotes").value.trim();
+    rec.number=document.getElementById("fNum").value.trim();rec.type=document.getElementById("fType").value;rec.notes=document.getElementById("fNotes").value.trim();rec.price=parseFloat(document.getElementById("fPrice").value)||0;
     if(flow(rec).indexOf(rec.status)<0)rec.status="done";
     if(!id)rec.log=[{t:rec.createdAt,x:"נוצר",b:"משרד"}];
-    else if(before!==[rec.name,rec.address,rec.phone,rec.number,rec.type,rec.notes].join("|"))addLog(rec,"פרטי המשלוח עודכנו");
+    else{if(before!==[rec.name,rec.address,rec.phone,rec.number,rec.type,rec.notes].join("|"))addLog(rec,"פרטי המשלוח עודכנו");if(priceOf(p)!==rec.price)addLog(rec,"מחיר עודכן: "+fm(priceOf(p))+" ← "+fm(rec.price))}
     save(rec);closeForm();
   };
   if(id)document.getElementById("del").onclick=function(){if(!this.dataset.sure){this.dataset.sure=1;this.textContent="לחץ שוב לאישור מחיקה";return}remove(id);closeForm()};
+  document.getElementById("fType").onchange=function(){document.getElementById("fPrice").value=prices[this.value]||0};
+  attachPlaces();
   document.getElementById("fName").focus();
 }
-function closeForm(){document.getElementById("modal").innerHTML=""}
+function closeForm(){window.curModal=null;document.getElementById("modal").innerHTML=""}
+
+
+function subExtra(){
+  var us=[];
+  if(canOffice)us.push(db.collection("settings").doc("prices").onSnapshot(function(s){var x=s.exists&&s.data();if(x){prices=Object.assign({},DEFAULT_PRICES,x);if(!document.getElementById("modal").innerHTML)render()}},function(){}));
+  if(canAdmin)us.push(db.collection("payments").onSnapshot(function(snap){
+    payments=snap.docs.map(function(d){var x=d.data();x.id=d.id;return x});
+    if(window.curModal==="fin")openFin();
+  },function(){}));
+  return function(){us.forEach(function(f){try{f()}catch(e){}})};
+}
+function lsPay(){try{localStorage.setItem("payments",JSON.stringify(payments))}catch(e){}}
+function addPayment(amount,note){
+  var rec={id:"pay"+Date.now(),amount:amount,at:Date.now(),note:note||""};
+  payments.push(rec);
+  if(db)db.collection("payments").doc(rec.id).set(rec).catch(function(){});else lsPay();
+}
+function delPayment(id){
+  payments=payments.filter(function(x){return x.id!==id});
+  if(db)db.collection("payments").doc(id).delete().catch(function(){});else lsPay();
+}
+function openFin(){
+  if(!canAdmin)return;
+  window.curModal="fin";
+  var done=parcels.filter(isStopped),earned=done.reduce(function(a,p){return a+priceOf(p)},0);
+  var paid=payments.reduce(function(a,x){return a+(Number(x.amount)||0)},0),left=earned-paid;
+  var list=payments.slice().sort(function(a,b){return b.at-a.at}).map(function(x){return '<li style="display:flex;justify-content:space-between;gap:8px;align-items:center;padding:6px 0;border-bottom:1px solid var(--line)"><span><b>'+fm(x.amount)+'</b> · '+fmt(x.at)+(x.note?' · '+esc(x.note):'')+'</span><button class="btn del" data-delpay="'+esc(x.id)+'" style="padding:4px 8px">מחיקה</button></li>'}).join("");
+  var m=document.getElementById("modal");
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="כספים"><h2 style="margin:0">כספים</h2>'
+  +'<div class="sum"><div><b>'+fm(earned)+'</b><span>נצבר ('+done.length+' משלוחים)</span></div><div><b>'+fm(paid)+'</b><span>שולם לשליח</span></div><div><b style="color:'+(left>0?'var(--bad)':'var(--ok)')+'">'+fm(left)+'</b><span>נותר לתשלום</span></div></div>'
+  +'<label for="payAmt">הזנת תשלום לשליח (₪)</label><input id="payAmt" type="number" inputmode="decimal" min="0" step="0.5"><label for="payNote">הערה (לא חובה)</label><input id="payNote">'
+  +'<button class="btn big" id="payAdd" style="margin-top:10px">הוספת תשלום</button>'
+  +'<div class="sub">היסטוריית תשלומים</div><ul style="list-style:none;margin:0;padding:0">'+(list||'<li class="empty">עדיין לא הוזנו תשלומים</li>')+'</ul>'
+  +'<button class="btn big sec" id="cancel" style="margin-top:12px">סגירה</button></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("payAdd").onclick=function(){
+    var a=parseFloat(document.getElementById("payAmt").value);
+    if(!(a>0)){document.getElementById("payAmt").focus();return}
+    addPayment(a,document.getElementById("payNote").value.trim());openFin();
+  };
+  Array.prototype.forEach.call(m.querySelectorAll("[data-delpay]"),function(b){b.onclick=function(){
+    if(!this.dataset.sure){this.dataset.sure=1;this.textContent="לחץ שוב";return}
+    delPayment(this.dataset.delpay);openFin();
+  }});
+}
+function openSet(){
+  if(!canAdmin)return;
+  var rows=Object.keys(T).map(function(k){return '<label for="pr_'+k+'">'+typeLabel(k)+'</label><input id="pr_'+k+'" type="number" inputmode="decimal" min="0" step="0.5" value="'+(prices[k]||0)+'">'}).join("");
+  var log=CHANGELOG.map(function(c){return '<li><b>'+esc(c[0])+'</b> · '+esc(c[1])+'</li>'}).join("");
+  var m=document.getElementById("modal");
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="הגדרות"><h2 style="margin:0 0 4px">הגדרות</h2><p style="color:var(--mute);margin:0">מחיר לשליח לכל סוג משלוח (₪). משלוחים שכבר נוצרו שומרים את המחיר שלהם, ואפשר לשנות אותו בעריכת המשלוח.</p>'+rows
+  +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="prSave" style="flex:1">שמירה</button><button class="btn sec" id="cancel">ביטול</button></div>'
+  +'<div class="sub">גרסת האפליקציה: '+esc(APP_VERSION)+'</div><ul style="margin:0;padding-inline-start:18px;font-size:13px;color:var(--mute)">'+log+'</ul></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("prSave").onclick=function(){
+    var np={};Object.keys(T).forEach(function(k){np[k]=Math.max(0,parseFloat(document.getElementById("pr_"+k).value)||0)});
+    prices=np;
+    if(db)db.collection("settings").doc("prices").set(np).catch(function(){});else{try{localStorage.setItem("prices",JSON.stringify(np))}catch(e){}}
+    closeForm();render();
+  };
+}
+function attachPlaces(){
+  var inp=document.getElementById("fAddr");if(!GOOGLE_KEY||!inp)return;
+  var w=document.createElement("div");w.style.position="relative";inp.parentNode.insertBefore(w,inp);w.appendChild(inp);
+  var list=document.createElement("div");list.className="addrl";list.style.display="none";w.appendChild(list);
+  var tok=(Math.random().toString(36).slice(2)+Date.now().toString(36)).slice(0,32),tm=null,seq=0;
+  inp.setAttribute("autocomplete","off");
+  inp.addEventListener("input",function(){
+    clearTimeout(tm);var q=inp.value.trim(),my=++seq;
+    if(q.length<3){list.style.display="none";return}
+    tm=setTimeout(function(){
+      fetch("https://places.googleapis.com/v1/places:autocomplete",{method:"POST",headers:{"Content-Type":"application/json","X-Goog-Api-Key":GOOGLE_KEY},body:JSON.stringify({input:q,languageCode:"he",includedRegionCodes:["il"],sessionToken:tok})})
+      .then(function(r){return r.json()}).then(function(d){
+        if(my!==seq)return;
+        var items=(d.suggestions||[]).filter(function(x){return x.placePrediction}).slice(0,6);
+        list.innerHTML="";
+        items.forEach(function(x){var t=x.placePrediction.text&&x.placePrediction.text.text;if(!t)return;
+          var b=document.createElement("button");b.type="button";b.textContent=t;
+          b.onclick=function(){inp.value=t;list.style.display="none"};list.appendChild(b)});
+        list.style.display=list.children.length?"block":"none";
+      }).catch(function(){});
+    },300);
+  });
+  inp.addEventListener("blur",function(){setTimeout(function(){list.style.display="none"},250)});
+}
 
 function openMsg(){
   var m=document.getElementById("modal");
@@ -286,9 +387,8 @@ function openPhoto(id){
 
 function setStatus(id,st){
   var p=parcels.find(function(x){return x.id===id});if(!p||p.status===st)return;
-  var r=Object.assign({},p);r.status=st;addLog(r,"סטטוס: "+S[st]);
-  var idx=flow(r).indexOf(st);
-  if(idx>=3){if(!r.doneAt)r.doneAt=Date.now()}else{delete r.doneAt}
+  var r=Object.assign({},p);r.status=st;addLog(r,"סטטוס: "+SL(r,st));
+  if(["done","returning","returned"].indexOf(st)>-1){if(!r.doneAt)r.doneAt=Date.now()}else{delete r.doneAt}
   save(r);
 }
 
@@ -304,7 +404,9 @@ function remove(id){
   if(db){db.collection("parcels").doc(id).delete().catch(function(){})}else lsSave();
 }
 function lsSave(){try{localStorage.setItem("parcels",JSON.stringify(parcels))}catch(e){}}
-function lsLoad(){try{parcels=JSON.parse(localStorage.getItem("parcels")||"[]")}catch(e){parcels=[]}}
+function lsLoad(){try{parcels=JSON.parse(localStorage.getItem("parcels")||"[]")}catch(e){parcels=[]}
+  try{var pr=JSON.parse(localStorage.getItem("prices")||"null");if(pr)prices=Object.assign({},DEFAULT_PRICES,pr)}catch(e){}
+  try{payments=JSON.parse(localStorage.getItem("payments")||"[]")}catch(e){payments=[]}}
 
 document.addEventListener("click",function(e){
   var t=e.target.closest("button");if(!t)return;
@@ -312,6 +414,8 @@ document.addEventListener("click",function(e){
   if(t.id==="logout"){if(auth)auth.signOut();return}
   if(t.id==="add"){openForm();return}
   if(t.id==="msgset"){openMsg();return}
+  if(t.id==="finbtn"){openFin();return}
+  if(t.id==="setbtn"){openSet();return}
   if(t.dataset.pv){openPhoto(t.dataset.pv);return}
   if(t.dataset.pick){openPick(t.dataset.pick);return}
   if(t.dataset.f){filter=t.dataset.f;render();return}
@@ -352,13 +456,15 @@ document.addEventListener("click",function(e){
   var kind=a.dataset.fb,pid=a.dataset.pid;
   setTimeout(function(){if(!left)openContact(kind,pid)},900);
 });
+try{document.getElementById("verNum").textContent=APP_VERSION}catch(e){}
 try{var tt=localStorage.getItem("tpl");if(tt)tpl=tt}catch(e){}
 try{var v=localStorage.getItem("view");if(v==="courier"||v==="office")view=v}catch(e){}
 render();
 
 // ===== הגדרות Firebase: להחליף בערכים מהפרויקט שלך =====
 var FIREBASE_CONFIG={apiKey:"AIzaSyA0NaX161Zps-lEmAUhXlYgkOkJvdSagO0",authDomain:"tamid-bashlichut.firebaseapp.com",projectId:"tamid-bashlichut",appId:"1:591655933588:web:3e1da334eb8d45c77b4681"};
-var OFFICE_EMAILS=["levchayale@gmail.com"]; // כתובות המייל של המשרד (חייב להתאים ל-firestore.rules)
+var ADMIN_EMAILS=["levchayale@gmail.com"]; // אדמין: הכל כולל מחירון וכספים (חייב להתאים ל-firestore.rules)
+var OFFICE_EMAILS=[]; // עובדי משרד נוספים (לא חובה)
 // =====================================================
 var needLogin=false,auth=null;
 function showLogin(msg){
@@ -375,15 +481,16 @@ function showLogin(msg){
 (function(){
   if(FIREBASE_CONFIG.apiKey==="YOUR_API_KEY"||typeof firebase==="undefined"){localMode=true;lsLoad();render();return}
   firebase.initializeApp(FIREBASE_CONFIG);auth=firebase.auth();var fs=firebase.firestore();
-  var unsubP=null,unsubS=null,offices=OFFICE_EMAILS.map(function(x){return x.toLowerCase()});
+  var unsubP=null,unsubS=null,unsubX=null,offices=OFFICE_EMAILS.map(function(x){return x.toLowerCase()}),admins=ADMIN_EMAILS.map(function(x){return x.toLowerCase()});
   auth.onAuthStateChanged(function(u){
-    if(unsubP){unsubP();unsubP=null}if(unsubS){unsubS();unsubS=null}
+    if(unsubP){unsubP();unsubP=null}if(unsubS){unsubS();unsubS=null}if(unsubX){unsubX();unsubX=null}
     if(!u){db=null;needLogin=true;parcels=[];document.getElementById("logout").style.display="none";render();return}
     needLogin=false;db=fs;localMode=false;
-    canOffice=offices.indexOf((u.email||"").toLowerCase())>-1;
+    var em=(u.email||"").toLowerCase();canAdmin=admins.indexOf(em)>-1;canOffice=canAdmin||offices.indexOf(em)>-1;
     if(!canOffice)view="courier";
     document.getElementById("logout").style.display="";
     unsubS=db.collection("settings").doc("msg").onSnapshot(function(s){var x=s.exists&&s.data();if(x&&typeof x.text==="string"&&x.text){tpl=x.text;if(!document.getElementById("modal").innerHTML)render()}},function(){});
+    unsubX=subExtra();
     unsubP=db.collection("parcels").onSnapshot(function(snap){
       parcels=snap.docs.map(function(d){var x=d.data();x.id=d.id;return x});
       if(!document.getElementById("modal").innerHTML&&!(document.activeElement&&document.activeElement.dataset&&document.activeElement.dataset.cn))render();

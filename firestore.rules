@@ -2,9 +2,13 @@ rules_version = '2';
 service cloud.firestore {
   match /databases/{database}/documents {
 
-    // החלף את שתי הכתובות בכתובות האמיתיות (באותיות קטנות)
-    function office() {
+    // אדמין: הכל, כולל מחירון וכספים
+    function admin() {
       return request.auth != null && request.auth.token.email in ['levchayale@gmail.com'];
+    }
+    // עובדי משרד נוספים (כרגע אין), האדמין נחשב גם משרד
+    function office() {
+      return admin() || (request.auth != null && request.auth.token.email in []);
     }
     function courier() {
       return request.auth != null && request.auth.token.email in ['yakovfi@gmail.com'];
@@ -18,9 +22,17 @@ service cloud.firestore {
           .hasOnly(['status', 'doneAt', 'photo', 'courierNote', 'log']));
     }
 
-    match /settings/{id} {
+    match /settings/msg {
       allow read: if office() || courier();
       allow write: if office();
+    }
+    match /settings/prices {
+      allow read: if office();
+      allow write: if admin();
+    }
+
+    match /payments/{id} {
+      allow read, write: if admin();
     }
   }
 }
