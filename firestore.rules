@@ -4,14 +4,14 @@ service cloud.firestore {
 
     // אדמין: הכל, כולל מחירון וכספים
     function admin() {
-      return request.auth != null && request.auth.token.email in ['levchayale@gmail.com'];
+      return request.auth != null && request.auth.token.email in ['yakovfi@gmail.com'];
     }
-    // עובדי משרד נוספים (כרגע אין), האדמין נחשב גם משרד
+    // משרד (האדמין נחשב גם משרד)
     function office() {
-      return admin() || (request.auth != null && request.auth.token.email in []);
+      return admin() || (request.auth != null && request.auth.token.email in ['levchayale@gmail.com']);
     }
     function courier() {
-      return request.auth != null && request.auth.token.email in ['yakovfi@gmail.com'];
+      return request.auth != null && request.auth.token.email in ['rubalgabi@gmail.com'];
     }
 
     match /parcels/{id} {
@@ -33,6 +33,13 @@ service cloud.firestore {
 
     match /payments/{id} {
       allow read, write: if admin();
+    }
+
+    // דף איתור ללקוחות: קריאה של מסמך בודד בלבד (המזהה הוא גיבוב של מספר חבילה וטלפון), ללא רשימה
+    match /track/{id} {
+      allow get: if true;
+      allow list: if false;
+      allow write: if office() || courier();
     }
   }
 }
