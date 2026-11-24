@@ -11,11 +11,23 @@
 box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
 @media (prefers-color-scheme:dark){:root:not([data-theme="light"]){--bg:#0e1424;--card:#172038;--ink:#eef1f8;--mute:#9aa7c2;--line:#2a3555;--acc:#ffc300;--onacc:#14213d;--hi:#ffc300;--ok:#4cc38a;--warn:#ffa940;--bad:#ff6b6b;--tint:#1d2845}}
 :root[data-theme="dark"]{--bg:#0e1424;--card:#172038;--ink:#eef1f8;--mute:#9aa7c2;--line:#2a3555;--acc:#ffc300;--onacc:#14213d;--hi:#ffc300;--ok:#4cc38a;--warn:#ffa940;--bad:#ff6b6b;--tint:#1d2845}
+:root[data-pal="teal"]{--acc:#0f766e;--tint:#e6f4f2}
+:root[data-pal="purple"]{--acc:#6d28d9;--tint:#f0eafc}
+:root[data-pal="orange"]{--acc:#c2410c;--tint:#fdeee4}
+:root[data-pal="gray"]{--acc:#374151;--tint:#eceff3}
+@media (prefers-color-scheme:dark){:root[data-pal="teal"]:not([data-theme="light"]){--acc:#2dd4bf;--tint:#12302d}}
+@media (prefers-color-scheme:dark){:root[data-pal="purple"]:not([data-theme="light"]){--acc:#a78bfa;--tint:#26203f}}
+@media (prefers-color-scheme:dark){:root[data-pal="orange"]:not([data-theme="light"]){--acc:#fb923c;--tint:#3a2418}}
+@media (prefers-color-scheme:dark){:root[data-pal="gray"]:not([data-theme="light"]){--acc:#e5e7eb;--tint:#242b3d}}
+:root[data-pal="teal"][data-theme="dark"]{--acc:#2dd4bf;--tint:#12302d}
+:root[data-pal="purple"][data-theme="dark"]{--acc:#a78bfa;--tint:#26203f}
+:root[data-pal="orange"][data-theme="dark"]{--acc:#fb923c;--tint:#3a2418}
+:root[data-pal="gray"][data-theme="dark"]{--acc:#e5e7eb;--tint:#242b3d}
 html{scroll-padding-top:env(safe-area-inset-top,0px)}
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.45 Heebo,system-ui,Arial,sans-serif}
 .wrap{max-width:760px;margin:0 auto;padding:12px}
-header{display:flex;align-items:center;gap:10px;justify-content:space-between;margin:4px 0 12px}
+header{flex-wrap:wrap;display:flex;align-items:center;gap:10px;justify-content:space-between;margin:4px 0 12px}
 h1{font-size:22px;margin:0;font-weight:800}
 .seg{display:flex;background:var(--tint);border-radius:12px;padding:3px}
 .seg button{border:0;background:none;color:var(--mute);font:inherit;font-weight:700;padding:8px 16px;border-radius:10px;cursor:pointer}
@@ -70,6 +82,7 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <div class="wrap">
   <header>
     <h1>משלוחים <span style="font-size:12px;color:var(--mute);font-weight:500">v<span id="verNum"></span></span></h1>
+    <button class="btn sec" id="themeBtn" aria-label="מראה ופלטת צבעים" style="padding:8px 12px">🎨</button>
     <button class="btn sec" id="logout" style="display:none">התנתקות</button>
     <div class="seg" role="tablist"><button id="vOffice" role="tab">משרד</button><button id="vCourier" role="tab">שליח</button></div>
   </header>
@@ -83,8 +96,8 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-var APP_VERSION="1.4.0";
-var CHANGELOG=[["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
+var APP_VERSION="1.5.0";
+var CHANGELOG=[["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
 var GOOGLE_KEY="";
 var TRACK_URL="https://yakovdi.github.io/tamid-bashlichut/track.html";
 var query="";
@@ -460,6 +473,31 @@ function showPrint(rows,cols,f){
   document.getElementById("pvClose").onclick=function(){v.remove()};
   document.getElementById("pvPrint").onclick=function(){try{window.print()}catch(e){toast("ההדפסה נחסמה בדפדפן")}};
 }
+var PALETTES=[["navy","כחול כהה","#14213d"],["teal","ירוק-ים","#0f766e"],["purple","סגול","#6d28d9"],["orange","כתום","#c2410c"],["gray","אפור","#374151"]];
+function getTheme(){try{var t=JSON.parse(localStorage.getItem("theme")||"null");if(t)return {mode:t.mode||"auto",pal:t.pal||"navy"}}catch(e){}return {mode:"auto",pal:"navy"}}
+function applyTheme(){
+  var t=getTheme(),r=document.documentElement;
+  if(t.mode==="light"||t.mode==="dark")r.setAttribute("data-theme",t.mode);else r.removeAttribute("data-theme");
+  if(t.pal&&t.pal!=="navy")r.setAttribute("data-pal",t.pal);else r.removeAttribute("data-pal");
+}
+function setTheme(part){
+  var t=Object.assign(getTheme(),part);
+  try{localStorage.setItem("theme",JSON.stringify(t))}catch(e){}
+  applyTheme();
+}
+function openTheme(){
+  var t=getTheme(),m=document.getElementById("modal");
+  var modes=[["auto","אוטומטי (לפי המכשיר)"],["light","בהיר"],["dark","כהה"]];
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="מראה"><h2 style="margin:0 0 4px">מראה</h2><p style="color:var(--mute);margin:0">הבחירה נשמרת במכשיר הזה ולא משפיעה על משתמשים אחרים.</p>'
+  +'<div class="sub">מצב תצוגה</div><div class="seg" style="display:flex">'+modes.map(function(x){return '<button style="flex:1" data-mode="'+x[0]+'" class="'+(t.mode===x[0]?'on':'')+'">'+x[1]+'</button>'}).join("")+'</div>'
+  +'<div class="sub">פלטת צבעים</div><div style="display:grid;grid-template-columns:repeat(auto-fit,minmax(110px,1fr));gap:8px">'+PALETTES.map(function(x){return '<button class="btn sec" data-pal="'+x[0]+'" style="display:flex;gap:8px;align-items:center;justify-content:center;'+(t.pal===x[0]?'outline:3px solid var(--acc)':'')+'"><span style="width:18px;height:18px;border-radius:50%;background:'+x[2]+';display:inline-block;border:2px solid #fff;box-shadow:0 0 0 1px #888"></span>'+x[1]+'</button>'}).join("")+'</div>'
+  +'<button class="btn big" id="cancel" style="margin-top:14px">סגירה</button></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  Array.prototype.forEach.call(m.querySelectorAll("[data-mode],[data-pal]"),function(b){b.onclick=function(){
+    setTheme(this.dataset.mode?{mode:this.dataset.mode}:{pal:this.dataset.pal});openTheme();
+  }});
+}
 function openMsg(){
   var m=document.getElementById("modal");
   var fields=[["text","הודעה כללית (כפתורי וואטסאפ ו-SMS בכרטיס)",tpl],["pickup","פתיחת בקשת איסוף (כפתור 📲 בכרטיס איסוף)",AUTO.pickup],["picked","שינוי סטטוס ל\"נאסף\"",AUTO.picked],["enroute","שינוי סטטוס ל\"בדרך ללקוח\"",AUTO.enroute],["done","שינוי סטטוס ל\"נמסר\"",AUTO.done]];
@@ -582,6 +620,7 @@ document.addEventListener("click",function(e){
   if(t.id==="msgset"){openMsg();return}
   if(t.id==="finbtn"){openFin();return}
   if(t.id==="repbtn"){openReport();return}
+  if(t.id==="themeBtn"){openTheme();return}
   if(t.id==="setbtn"){openSet();return}
   if(t.dataset.pv){openPhoto(t.dataset.pv);return}
   if(t.dataset.pick){openPick(t.dataset.pick);return}
@@ -626,6 +665,7 @@ document.addEventListener("click",function(e){
   setTimeout(function(){if(!left)openContact(kind,pid)},900);
 });
 try{document.getElementById("verNum").textContent=APP_VERSION}catch(e){}
+applyTheme();
 document.getElementById("q").addEventListener("input",function(){query=this.value;render()});
 try{var tt=localStorage.getItem("tpl");if(tt)tpl=tt}catch(e){}
 try{var at=JSON.parse(localStorage.getItem("autotpl")||"null");if(at)Object.assign(AUTO,at)}catch(e){}
