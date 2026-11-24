@@ -21,7 +21,7 @@ h1{font-size:22px;margin:0;font-weight:800}
 .seg button{border:0;background:none;color:var(--mute);font:inherit;font-weight:700;padding:8px 16px;border-radius:10px;cursor:pointer}
 .seg button.on{background:var(--acc);color:var(--onacc)}
 button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,textarea:focus-visible{outline:3px solid var(--hi);outline-offset:1px}
-.tiles{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:12px}
+.tiles{display:grid;grid-template-columns:repeat(auto-fit,minmax(96px,1fr));gap:8px;margin-bottom:12px}
 .tile{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px;text-align:right;font:inherit;color:inherit;cursor:pointer}
 .tile b{display:block;font-size:26px;line-height:1.1;font-weight:800}
 .tile span{font-size:13px;color:var(--mute)}
@@ -38,7 +38,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .name{font-size:18px;font-weight:700}
 .tags{display:flex;flex-wrap:wrap;gap:6px;margin:4px 0}
 .tag{font-size:12px;font-weight:700;background:var(--tint);border-radius:8px;padding:2px 8px}
-.tag.ret{background:var(--hi);color:#14213d}
+.tag.bad{background:var(--bad);color:#fff}.tag.ret{background:var(--hi);color:#14213d}
 .timer{font-size:13px;font-weight:700;white-space:nowrap}
 .timer.ok{color:var(--ok)}.timer.warn{color:var(--warn)}.timer.bad{color:var(--bad)}
 .row{margin:6px 0;display:flex;flex-wrap:wrap;gap:6px;align-items:center}
@@ -81,14 +81,14 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-var APP_VERSION="1.2.0";
-var CHANGELOG=[["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
+var APP_VERSION="1.3.0";
+var CHANGELOG=[["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
 var GOOGLE_KEY="";
 var TRACK_URL="https://yakovdi.github.io/tamid-bashlichut/track.html";
 var query="";
 var T={regular:"רגיל",double:"כפול",pickup:"איסוף",express:"מהיר",carton:"קרטון",cod:"גוביינה"};
 var RET=["double","pickup","cod"];
-var S={new:"חדש",picked:"נאסף",enroute:"בדרך ללקוח",done:"בוצע",returning:"בדרך חזרה למשרד",returned:"חזר למשרד"};
+var S={new:"חדש",picked:"נאסף",enroute:"בדרך ללקוח",done:"בוצע",returning:"בדרך חזרה למשרד",returned:"חזר למשרד",failed:"כשל במסירה",cancelled:"בוטל"};
 var ACT={picked:"נאסף",enroute:"יצאתי ללקוח",done:"נמסר",returning:"בדרך חזרה למשרד",returned:"הגעתי למשרד"};
 var LIMIT=5;               // ימי עסקים ליעד
 var WORKDAYS=[0,1,2,3,4];  // ראשון עד חמישי
@@ -109,18 +109,68 @@ function setCourierNote(id,v){
   if(db){db.collection("parcels").doc(id).update({courierNote:v,log:p.log}).catch(function(){})}else lsSave();
   toast("ההערה נשמרה");
 }
-function msgFor(p){return tpl.replace(/\{שם\}/g,p.name||"").replace(/\{מספר\}/g,p.number||"").replace(/\{קישור\}/g,TRACK_URL)}
+var AUTO_DEF={
+ pickup:"שלום, נפתחה בקשת איסוף ממך מס' {מספר} על ידי דיאטת לורן , בימים הקרובים שליח יתאם איתך את מועד האיסוף. יש לוודא כי החבילה ארוזה היטב וסגורה בצורה הרמטית",
+ picked:"שלום {שם} , ההזמנה שלך מדיאטת לורן שמספרה {מספר} התקבלה אצלנו במחסנים ותצא להפצה בימים הקרובים. למעקב אחר המשלוח בכל רגע נתון: {קישור}",
+ enroute:"שלום {שם}, חבילה {מספר} מדיאטת לורן תגיע היום ל{כתובת}. להשארה ליד הדלת — השב 1 + קוד כניסה/קומה/דירה. לתיקון כתובת — השב 3 + כתובת חדשה. (ייתכן ושינוי עיר / רחוב במעמד זה ידחה את ההפצה למועד אחר) מעקב: {קישור}",
+ done:"היי {שם}, משלוח {מספר} מדיאטת לורן נמסר הרגע ל{כתובת}."};
+var AUTO=Object.assign({},AUTO_DEF);
+var FAIL_REASONS=["אין מענה","כתובת שגויה","נדחה על ידי הלקוח למועד אחר","אחר (פירוט חופשי)"];
+function trackLink(p){return TRACK_URL?TRACK_URL+"?n="+encodeURIComponent(p.number||"")+"&p="+encodeURIComponent(normPhone(p.phone)):""}
+function fillTpl(t,p){return t.replace(/\{שם\}/g,p.name||"").replace(/\{מספר\}/g,p.number||"").replace(/\{כתובת\}/g,p.address||"").replace(/\{קישור\}/g,trackLink(p))}
+function msgFor(p){return fillTpl(tpl,p)}
+function applyMsgDoc(x){
+  if(typeof x.text==="string"&&x.text)tpl=x.text;
+  Object.keys(AUTO_DEF).forEach(function(k){var v=x["a_"+k];if(typeof v==="string"&&v)AUTO[k]=v});
+}
+function waKind(p,st){
+  if(p.type==="pickup")return null;
+  return {picked:"picked",enroute:"enroute",done:"done"}[st]||null;
+}
+function openWa(pid,kind){
+  var p=parcels.find(function(x){return x.id===pid});if(!p||!p.phone||!AUTO[kind])return;
+  var text=fillTpl(AUTO[kind],p);
+  var m=document.getElementById("modal");
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="הודעה ללקוח"><h2 style="margin:0 0 8px">שליחת הודעה ללקוח</h2><div class="note" style="white-space:pre-wrap">'+esc(text)+'</div><a class="btn big" id="waGo" style="display:block;text-align:center;text-decoration:none;margin-top:10px" target="_blank" rel="noopener" href="https://wa.me/'+phoneIntl(p.phone)+'?text='+encodeURIComponent(text)+'">שליחה בוואטסאפ ל'+esc(p.name)+'</a><button class="btn big sec" id="cancel" style="margin-top:8px">דילוג</button></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("waGo").onclick=function(){setTimeout(closeForm,400)};
+}
+function openFail(pid){
+  var p=parcels.find(function(x){return x.id===pid});if(!p)return;
+  var m=document.getElementById("modal");
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="כשל במסירה"><h2 style="margin:0 0 8px">כשל במסירה: '+esc(p.name)+'</h2>'
+  +FAIL_REASONS.map(function(r,i){return '<label class="chk"><input type="radio" name="fr" value="'+i+'"'+(i===0?' checked':'')+'>'+(i+1)+'. '+esc(r)+'</label>'}).join("")
+  +'<label for="frNote">פירוט (חובה בסיבה האחרונה)</label><input id="frNote">'
+  +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="frOk" style="flex:1">שמירת כשל</button><button class="btn sec" id="cancel">חזרה</button></div></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("frOk").onclick=function(){
+    var i=parseInt(m.querySelector('input[name="fr"]:checked').value,10),note=document.getElementById("frNote").value.trim();
+    if(i===FAIL_REASONS.length-1&&!note){document.getElementById("frNote").focus();return}
+    var reason=(i===FAIL_REASONS.length-1?"":FAIL_REASONS[i])+(note?(i===FAIL_REASONS.length-1?"":": ")+note:"");
+    setStatus(pid,"failed",reason);closeForm();
+  };
+}
+function openCancel(pid){
+  var p=parcels.find(function(x){return x.id===pid});if(!p)return;
+  var m=document.getElementById("modal");
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="ביטול משלוח"><h2 style="margin:0 0 8px">ביטול משלוח: '+esc(p.name)+'</h2><p style="color:var(--mute);margin:0">המשלוח יסומן כמבוטל ולא יחושב בכספים.</p><label for="cnNote">סיבת ביטול (לא חובה)</label><input id="cnNote"><div style="display:flex;gap:8px;margin-top:14px"><button class="btn del" id="cnOk" style="flex:1;background:var(--bad);color:#fff">ביטול משלוח</button><button class="btn sec" id="cancel">חזרה</button></div></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("cnOk").onclick=function(){setStatus(pid,"cancelled",document.getElementById("cnNote").value.trim());closeForm()};
+}
 
 function esc(s){return String(s==null?"":s).replace(/[&<>"']/g,function(c){return {"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"}[c]})}
 function flow(p){if(p.type==="pickup")return ["new","enroute","done","returning","returned"];return RET.indexOf(p.type)>-1?["new","picked","enroute","done","returning","returned"]:["new","picked","enroute","done"]}
-function isFinal(p){var f=flow(p);return p.status===f[f.length-1]}
+function isFinal(p){var f=flow(p);return p.status===f[f.length-1]||p.status==="cancelled"}
 function isStopped(p){return ["done","returning","returned"].indexOf(p.status)>-1}
 function SL(p,st){return p.type==="pickup"&&st==="done"?"נאסף מהלקוח":S[st]}
-function ACTL(p,st){return p.type==="pickup"&&st==="done"?"נאסף מהלקוח":ACT[st]}
+function ACTL(p,st){if(p.status==="failed"&&st==="enroute")return "ניסיון חוזר: יצאתי ללקוח";return p.type==="pickup"&&st==="done"?"נאסף מהלקוח":ACT[st]}
 function typeLabel(k){return k==="pickup"?"איסוף (חזור בלבד)":T[k]+(RET.indexOf(k)>-1?" (הלוך וחזור)":"")}
 function priceOf(p){return p.price!=null?p.price:(prices[p.type]||0)}
 function fm(n){return "₪"+(Math.round(n*100)/100).toLocaleString("he-IL")}
-function nextStatus(p){var f=flow(p),i=f.indexOf(p.status);return i>-1&&i<f.length-1?f[i+1]:null}
+function nextStatus(p){if(p.status==="failed")return "enroute";var f=flow(p),i=f.indexOf(p.status);return i>-1&&i<f.length-1?f[i+1]:null}
 
 function bizElapsed(from,to){
   var a=new Date(from);a.setHours(0,0,0,0);var b=new Date(to);b.setHours(0,0,0,0);
@@ -128,6 +178,7 @@ function bizElapsed(from,to){
   return n;
 }
 function timer(p){
+  if(p.status==="cancelled")return {cls:"",txt:"בוטל",left:99};
   var el=bizElapsed(p.createdAt,isStopped(p)?(p.doneAt||Date.now()):Date.now());
   if(isStopped(p))return {cls:el>LIMIT?"bad":"ok",txt:"נמסר תוך "+el+" ימי עסקים",left:99};
   var left=LIMIT-el;
@@ -149,11 +200,12 @@ function links(p){
 function card(p,role){
   var t=timer(p),nx=nextStatus(p);
   var h='<div class="card '+t.cls+'"><div class="top"><div><div class="name">'+esc(p.name)+'</div>';
-  h+='<div class="tags"><span class="tag">#'+esc(p.number||"—")+'</span><span class="tag">'+T[p.type]+'</span>'+(RET.indexOf(p.type)>-1?'<span class="tag ret">'+(p.type==="pickup"?'חזור בלבד':'הלוך וחזור')+'</span>':'')+'<span class="tag">'+SL(p,p.status)+'</span>'+(role==="office"?'<span class="tag">'+fm(priceOf(p))+'</span>':'')+'</div></div>';
+  h+='<div class="tags"><span class="tag">#'+esc(p.number||"—")+'</span><span class="tag">'+T[p.type]+'</span>'+(RET.indexOf(p.type)>-1?'<span class="tag ret">'+(p.type==="pickup"?'חזור בלבד':'הלוך וחזור')+'</span>':'')+'<span class="tag'+(p.status==="failed"||p.status==="cancelled"?' bad':'')+'">'+SL(p,p.status)+'</span>'+(role==="office"?'<span class="tag">'+fm(priceOf(p))+'</span>':'')+'</div></div>';
   h+='<div class="timer '+t.cls+'">'+t.txt+'</div></div>';
   if(p.address)h+='<div>'+esc(p.address)+'</div>';
   h+=links(p);
   if(p.notes)h+='<div class="note">'+esc(p.notes)+'</div>';
+  if(p.status==="failed"&&p.failReason)h+='<div class="note" style="border-inline-start:4px solid var(--bad)"><b>כשל במסירה:</b> '+esc(p.failReason)+'</div>';
   if(role==="courier")h+='<div class="sub" style="margin:8px 0 4px">הערת שליח</div><textarea rows="2" aria-label="הערת שליח" data-cn="'+p.id+'" placeholder="למשל: אין מענה, הושאר אצל שכן">'+esc(p.courierNote)+'</textarea>';
   else if(p.courierNote)h+='<div class="note"><b>הערת שליח:</b> '+esc(p.courierNote)+'</div>';
   if(["enroute","done","returning","returned"].indexOf(p.status)>-1){
@@ -162,8 +214,10 @@ function card(p,role){
   }
   h+='<div class="acts">';
   if(nx)h+='<button class="btn" data-next="'+p.id+'">'+ACTL(p,nx)+'</button>';
+  if(p.type==="pickup"&&p.status==="new")h+='<button class="btn sec" data-wa="pickup" data-id="'+p.id+'">📲 הודעת איסוף</button>';
+  if(["picked","enroute"].indexOf(p.status)>-1)h+='<button class="btn sec" data-fail="'+p.id+'">❌ כשל</button>';
   if(role==="office"){
-    h+='<select aria-label="סטטוס" data-st="'+p.id+'">'+Object.keys(S).filter(function(k){return flow(p).indexOf(k)>-1}).map(function(k){return '<option value="'+k+'"'+(k===p.status?' selected':'')+'>'+SL(p,k)+'</option>'}).join("")+'</select>';
+    h+='<select aria-label="סטטוס" data-st="'+p.id+'">'+Object.keys(S).filter(function(k){return flow(p).indexOf(k)>-1||k==="failed"||k==="cancelled"}).map(function(k){return '<option value="'+k+'"'+(k===p.status?' selected':'')+'>'+SL(p,k)+'</option>'}).join("")+'</select>';
     h+='<button class="btn sec" data-edit="'+p.id+'">עריכה</button>';
   }
   return h+'</div>'+histHtml(p)+'</div>';
@@ -184,8 +238,8 @@ function render(){
   if(view==="office"){
     var late=active.filter(function(p){return timer(p).left<0}).length;
     var cnt=function(s){return parcels.filter(function(p){return p.status===s}).length};
-    var tiles=[["active","פעילים",active.length],["late","באיחור",late],["new","חדשים",cnt("new")],["picked","נאספו",cnt("picked")],["enroute","בדרך ללקוח",cnt("enroute")],["returning","בדרך חזרה",cnt("returning")]];
-    h+='<div class="tiles">'+tiles.map(function(x){return '<button class="tile'+(filter===x[0]?' on':'')+(x[0]==="late"&&x[2]?' bad':'')+'" data-f="'+x[0]+'"><b>'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div>';
+    var tiles=[["active","פעילים",active.length],["late","באיחור",late],["new","חדשים",cnt("new")],["picked","נאספו",cnt("picked")],["enroute","בדרך ללקוח",cnt("enroute")],["returning","בדרך חזרה",cnt("returning")],["failed","כשלים",cnt("failed")],["cancelled","בוטלו",cnt("cancelled")]];
+    h+='<div class="tiles">'+tiles.map(function(x){return '<button class="tile'+(filter===x[0]?' on':'')+((x[0]==="late"||x[0]==="failed")&&x[2]?' bad':'')+'" data-f="'+x[0]+'"><b>'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div>';
     h+='<div class="bar"><button class="btn" id="add" style="flex:1">+ משלוח חדש</button><button class="btn sec" id="msgset">הודעה</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>'+(canAdmin?'<div class="bar"><button class="btn sec" id="finbtn" style="flex:1">💰 כספים</button><button class="btn sec" id="setbtn" style="flex:1">⚙ הגדרות</button></div>':'');
     var list;
     if(query.trim()){list=parcels.filter(function(p){return matches(p,query.trim())}).sort(function(a,b){return b.createdAt-a.createdAt});h+='<div class="sub">נמצאו '+list.length+' תוצאות</div>'}
@@ -203,7 +257,7 @@ function render(){
     var fresh=active.filter(function(p){return p.status==="new"});
     var shown=fresh.length;
     if(fresh.length)h+='<div class="sub">חדשים לאיסוף ('+fresh.length+')</div>'+fresh.map(function(p){return card(p,"courier")}).join("");
-    [["picked","נאספו, מוכנים ליציאה"],["enroute","בדרך ללקוח"],["done","נמסרו, ממתינים לחזרה"],["returning","בדרך חזרה למשרד"]].forEach(function(g){
+    [["picked","נאספו, מוכנים ליציאה"],["enroute","בדרך ללקוח"],["failed","כשל במסירה: ניסיון חוזר או החזרה"],["done","נמסרו, ממתינים לחזרה"],["returning","בדרך חזרה למשרד"]].forEach(function(g){
       var l=active.filter(function(p){return p.status===g[0]});
       if(l.length){shown+=l.length;h+='<div class="sub">'+g[1]+' ('+l.length+')</div>'+l.map(function(p){return card(p,"courier")}).join("")}
     });
@@ -235,7 +289,7 @@ function openForm(id){
     var rec=id?Object.assign({},p):{id:"p"+Date.now(),status:"new",createdAt:Date.now()};
     rec.name=name;rec.address=document.getElementById("fAddr").value.trim();rec.phone=document.getElementById("fPhone").value.trim();
     rec.number=document.getElementById("fNum").value.trim();rec.type=document.getElementById("fType").value;rec.notes=document.getElementById("fNotes").value.trim();rec.price=parseFloat(document.getElementById("fPrice").value)||0;
-    if(flow(rec).indexOf(rec.status)<0)rec.status="done";
+    if(flow(rec).indexOf(rec.status)<0&&rec.status!=="failed"&&rec.status!=="cancelled")rec.status="done";
     if(!id)rec.log=[{t:rec.createdAt,x:"נוצר",b:"משרד"}];
     else{if(before!==[rec.name,rec.address,rec.phone,rec.number,rec.type,rec.notes].join("|"))addLog(rec,"פרטי המשלוח עודכנו");if(priceOf(p)!==rec.price)addLog(rec,"מחיר עודכן: "+fm(priceOf(p))+" ← "+fm(rec.price))}
     save(rec);closeForm();
@@ -337,18 +391,21 @@ function attachPlaces(){
 
 function openMsg(){
   var m=document.getElementById("modal");
-  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="הודעה ללקוח"><h2 style="margin:0 0 4px">הודעה ללקוח</h2><p style="color:var(--mute);margin:0">ההודעה נשלחת בלחיצה על וואטסאפ או SMS. אפשר להשתמש ב-{שם} וב-{מספר}, וגם ב-{קישור} לקישור לדף איתור החבילה. הם יוחלפו בפרטי המשלוח.</p><label for="tplText">נוסח ההודעה</label><textarea id="tplText" rows="5">'+esc(tpl)+'</textarea><div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="tplSave" style="flex:1">שמירה</button><button class="btn sec" id="tplReset">שחזור ברירת מחדל</button><button class="btn sec" id="cancel">ביטול</button></div></div></div>';
+  var fields=[["text","הודעה כללית (כפתורי וואטסאפ ו-SMS בכרטיס)",tpl],["pickup","פתיחת בקשת איסוף (כפתור 📲 בכרטיס איסוף)",AUTO.pickup],["picked","שינוי סטטוס ל\"נאסף\"",AUTO.picked],["enroute","שינוי סטטוס ל\"בדרך ללקוח\"",AUTO.enroute],["done","שינוי סטטוס ל\"נמסר\"",AUTO.done]];
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="הודעות ללקוח"><h2 style="margin:0 0 4px">הודעות ללקוח</h2><p style="color:var(--mute);margin:0">משתנים: {שם} {מספר} {כתובת} {קישור} (קישור אישי לדף איתור החבילה). ההודעות האוטומטיות נפתחות לשליח בוואטסאפ בעת שינוי הסטטוס.</p>'
+  +fields.map(function(f){return '<label for="tp_'+f[0]+'">'+f[1]+'</label><textarea id="tp_'+f[0]+'" rows="4">'+esc(f[2])+'</textarea>'}).join("")
+  +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="tplSave" style="flex:1">שמירה</button><button class="btn sec" id="tplReset">ברירת מחדל</button><button class="btn sec" id="cancel">ביטול</button></div></div></div>';
   document.getElementById("cancel").onclick=closeForm;
   document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
-  document.getElementById("tplReset").onclick=function(){document.getElementById("tplText").value=DEFAULT_TPL};
+  document.getElementById("tplReset").onclick=function(){document.getElementById("tp_text").value=DEFAULT_TPL;Object.keys(AUTO_DEF).forEach(function(k){document.getElementById("tp_"+k).value=AUTO_DEF[k]})};
   document.getElementById("tplSave").onclick=function(){
-    var v=document.getElementById("tplText").value.trim()||DEFAULT_TPL;
-    tpl=v;
-    if(db){db.collection("settings").doc("msg").set({text:v}).catch(function(){})}else{try{localStorage.setItem("tpl",v)}catch(e){}}
+    tpl=document.getElementById("tp_text").value.trim()||DEFAULT_TPL;
+    var doc={text:tpl};
+    Object.keys(AUTO_DEF).forEach(function(k){AUTO[k]=document.getElementById("tp_"+k).value.trim()||AUTO_DEF[k];doc["a_"+k]=AUTO[k]});
+    if(db){db.collection("settings").doc("msg").set(doc).catch(function(){})}else{try{localStorage.setItem("tpl",tpl);localStorage.setItem("autotpl",JSON.stringify(AUTO))}catch(e){}}
     closeForm();render();
   };
 }
-
 function shrink(file,cb){
   var r=new FileReader();
   r.onload=function(){var im=new Image();
@@ -394,9 +451,9 @@ function openPhoto(id){
   document.getElementById("pdel").onclick=function(){if(!this.dataset.sure){this.dataset.sure=1;this.textContent="לחץ שוב לאישור מחיקה";return}setPhoto(id,null);closeForm()};
 }
 
-function setStatus(id,st){
+function setStatus(id,st,reason){
   var p=parcels.find(function(x){return x.id===id});if(!p||p.status===st)return;
-  var r=Object.assign({},p);r.status=st;addLog(r,"סטטוס: "+SL(r,st));
+  var r=Object.assign({},p);r.status=st;addLog(r,"סטטוס: "+SL(r,st)+(reason?" ("+reason+")":""));if(st==="failed")r.failReason=reason||"";else delete r.failReason;
   if(["done","returning","returned"].indexOf(st)>-1){if(!r.doneAt)r.doneAt=Date.now()}else{delete r.doneAt}
   save(r);
 }
@@ -404,7 +461,7 @@ function setStatus(id,st){
 
 function normPhone(ph){var d=String(ph||"").replace(/\D/g,"");if(d.indexOf("972")===0)d="0"+d.slice(3);return d}
 function matches(p,q){
-  var hay=[p.name,p.address,p.phone,normPhone(p.phone),p.number,p.notes,p.courierNote,T[p.type],typeLabel(p.type),SL(p,p.status),canOffice?priceOf(p):""].join(" ").toLowerCase();
+  var hay=[p.name,p.address,p.phone,normPhone(p.phone),p.number,p.notes,p.courierNote,p.failReason,T[p.type],typeLabel(p.type),SL(p,p.status),canOffice?priceOf(p):""].join(" ").toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every(function(t){return hay.indexOf(t)>-1});
 }
 function trackKey(p){
@@ -412,11 +469,11 @@ function trackKey(p){
   var str=String(p.number).trim().toLowerCase()+"|"+normPhone(p.phone);
   return crypto.subtle.digest("SHA-256",new TextEncoder().encode(str)).then(function(b){return Array.prototype.map.call(new Uint8Array(b),function(x){return ("0"+x.toString(16)).slice(-2)}).join("")});
 }
-var STAGE={new:"new",picked:"picked",enroute:"enroute",done:"done",returning:"done",returned:"done"};
+var STAGE={new:"new",picked:"picked",enroute:"enroute",done:"done",returning:"done",returned:"done",failed:"failed",cancelled:"cancelled"};
 function trackDoc(p){
   var times={new:p.createdAt},rev={};
   Object.keys(S).forEach(function(k){rev[S[k]]=k});rev["נאסף מהלקוח"]="done";
-  getLog(p).forEach(function(e){var m=/^סטטוס: (.+)$/.exec(e.x);if(m&&rev[m[1]]){var st=STAGE[rev[m[1]]];if(!times[st])times[st]=e.t}});
+  getLog(p).forEach(function(e){var m=/^סטטוס: ([^(]+?)(?: \(.*\))?$/.exec(e.x);if(m&&rev[m[1]]){var st=STAGE[rev[m[1]]];if(!times[st])times[st]=e.t}});
   return {number:String(p.number).trim(),kind:p.type==="pickup"?"pickup":"delivery",stage:STAGE[p.status]||"new",times:times,updatedAt:Date.now()};
 }
 function syncTrack(rec,old){
@@ -456,13 +513,15 @@ document.addEventListener("click",function(e){
   if(t.id==="setbtn"){openSet();return}
   if(t.dataset.pv){openPhoto(t.dataset.pv);return}
   if(t.dataset.pick){openPick(t.dataset.pick);return}
+  if(t.dataset.fail){openFail(t.dataset.fail);return}
+  if(t.dataset.wa){openWa(t.dataset.id,t.dataset.wa);return}
   if(t.dataset.f){filter=t.dataset.f;render();return}
   if(t.dataset.edit){openForm(t.dataset.edit);return}
-  if(t.dataset.next){var p=parcels.find(function(x){return x.id===t.dataset.next});if(p)setStatus(p.id,nextStatus(p))}
+  if(t.dataset.next){var p=parcels.find(function(x){return x.id===t.dataset.next});if(p){var nx2=nextStatus(p);setStatus(p.id,nx2);var wk=waKind(p,nx2);if(wk)openWa(p.id,wk)}}
 });
 document.addEventListener("change",function(e){
   var d=e.target.dataset;if(!d)return;
-  if(d.st)setStatus(d.st,e.target.value);
+  if(d.st){var sv=e.target.value;if(sv==="failed"){openFail(d.st);render();return}if(sv==="cancelled"){openCancel(d.st);render();return}setStatus(d.st,sv)}
   if(d.cn)setCourierNote(d.cn,e.target.value);
   if((e.target.id==="photoIn"||e.target.id==="photoCam")&&e.target.files&&e.target.files[0]&&window.pickId){var id=window.pickId;toast("מעבד תמונה...");shrink(e.target.files[0],function(url){setPhoto(id,url);toast("התמונה נשמרה")})}
 });
@@ -497,6 +556,7 @@ document.addEventListener("click",function(e){
 try{document.getElementById("verNum").textContent=APP_VERSION}catch(e){}
 document.getElementById("q").addEventListener("input",function(){query=this.value;render()});
 try{var tt=localStorage.getItem("tpl");if(tt)tpl=tt}catch(e){}
+try{var at=JSON.parse(localStorage.getItem("autotpl")||"null");if(at)Object.assign(AUTO,at)}catch(e){}
 try{var v=localStorage.getItem("view");if(v==="courier"||v==="office")view=v}catch(e){}
 render();
 
@@ -528,7 +588,7 @@ function showLogin(msg){
     var em=(u.email||"").toLowerCase();canAdmin=admins.indexOf(em)>-1;canOffice=canAdmin||offices.indexOf(em)>-1;
     if(!canOffice)view="courier";
     document.getElementById("logout").style.display="";
-    unsubS=db.collection("settings").doc("msg").onSnapshot(function(s){var x=s.exists&&s.data();if(x&&typeof x.text==="string"&&x.text){tpl=x.text;if(!document.getElementById("modal").innerHTML)render()}},function(){});
+    unsubS=db.collection("settings").doc("msg").onSnapshot(function(s){var x=s.exists&&s.data();if(x){applyMsgDoc(x);if(!document.getElementById("modal").innerHTML)render()}},function(){});
     unsubX=subExtra();
     unsubP=db.collection("parcels").onSnapshot(function(snap){
       parcels=snap.docs.map(function(d){var x=d.data();x.id=d.id;return x});

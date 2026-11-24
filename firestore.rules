@@ -19,7 +19,7 @@ service cloud.firestore {
       allow create, delete: if office();
       allow update: if office() || (courier() &&
         request.resource.data.diff(resource.data).affectedKeys()
-          .hasOnly(['status', 'doneAt', 'photo', 'courierNote', 'log']));
+          .hasOnly(['status', 'doneAt', 'photo', 'courierNote', 'log', 'failReason']));
     }
 
     match /settings/msg {

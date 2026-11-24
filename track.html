@@ -29,9 +29,9 @@ function fmt(t){return new Date(t).toLocaleString("he-IL",{day:"2-digit",month:"
 var FLOW={delivery:[["new","התקבלה במערכת"],["picked","נאספה על ידי השליח"],["enroute","בדרך אליכם"],["done","נמסרה"]],pickup:[["new","התקבלה במערכת"],["enroute","השליח בדרך אליכם"],["done","נאספה"]]};
 var out=document.getElementById("out"),last=0;
 function show(d){
-  var f=FLOW[d.kind]||FLOW.delivery,cur=0;f.forEach(function(x,i){if(x[0]===d.stage)cur=i});
-  out.innerHTML='<div class="card"><b>חבילה #'+esc(d.number)+'</b><div style="margin-top:6px">'+f.map(function(x,i){var t=d.times&&d.times[x[0]];
-    return '<div class="step '+(i<=cur?'on':'off')+(i===cur?' cur':'')+'"><div class="dot"></div><div><b>'+x[1]+'</b>'+(i<=cur&&t?'<span>'+fmt(t)+'</span>':'')+'</div></div>'}).join("")
+  var f=FLOW[d.kind]||FLOW.delivery,cur=0,bad=d.stage==="failed"||d.stage==="cancelled";f.forEach(function(x,i){if(x[0]===d.stage)cur=i});
+  out.innerHTML='<div class="card"><b>חבילה #'+esc(d.number)+'</b>'+(bad?'<p class="err" style="margin:8px 0 0">'+(d.stage==="failed"?'ניסיון המסירה לא הושלם. ניצור איתכם קשר לתיאום מועד חדש.':'המשלוח בוטל.')+'</p>':'')+'<div style="margin-top:6px">'+f.map(function(x,i){var t=d.times&&d.times[x[0]];
+    return '<div class="step '+((bad?!!(d.times&&d.times[x[0]]):i<=cur)?'on':'off')+(!bad&&i===cur?' cur':'')+'"><div class="dot"></div><div><b>'+x[1]+'</b>'+(t&&(bad||i<=cur)?'<span>'+fmt(t)+'</span>':'')+'</div></div>'}).join("")
     +'</div><p style="margin:8px 0 0;font-size:13px">עודכן לאחרונה: '+fmt(d.updatedAt)+'</p></div>';
 }
 document.getElementById("go").onclick=function(){
@@ -43,4 +43,5 @@ document.getElementById("go").onclick=function(){
     if(doc.exists)show(doc.data());else out.innerHTML='<p class="err" style="margin-top:12px">לא נמצאה חבילה. בדקו את מספר החבילה ואת הטלפון.</p>';
   }).catch(function(){out.innerHTML='<p class="err" style="margin-top:12px">אירעה שגיאה. נסו שוב בעוד רגע.</p>'});
 };
+var qs=new URLSearchParams(location.search);if(qs.get("n")&&qs.get("p")){document.getElementById("n").value=qs.get("n");document.getElementById("p").value=qs.get("p");document.getElementById("go").click()}
 </script></body></html>
