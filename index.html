@@ -97,12 +97,12 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-var APP_VERSION="1.5.2";
-var CHANGELOG=[["1.5.2","אייקון חבילה בלשונית הדפדפן"],["1.5.1","קישור איתור החבילה בהודעות מפנה לכתובת החדשה"],["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
+var APP_VERSION="1.6.0";
+var CHANGELOG=[["1.6.0","שינוי שם הסוג לגוביינא, ושדה סכום לגבייה במשלוח גוביינא (מוצג לשליח, בדוח ובהודעות)"],["1.5.2","אייקון חבילה בלשונית הדפדפן"],["1.5.1","קישור איתור החבילה בהודעות מפנה לכתובת החדשה"],["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
 var GOOGLE_KEY="";
 var TRACK_URL="https://tamid-bashlichut.flytech.workers.dev/track.html";
 var query="";
-var T={regular:"רגיל",double:"כפול",pickup:"איסוף",express:"מהיר",carton:"קרטון",cod:"גוביינה"};
+var T={regular:"רגיל",double:"כפול",pickup:"איסוף",express:"מהיר",carton:"קרטון",cod:"גוביינא"};
 var RET=["double","pickup","cod"];
 var S={new:"חדש",picked:"נאסף",enroute:"בדרך ללקוח",done:"בוצע",returning:"בדרך חזרה למשרד",returned:"חזר למשרד",failed:"כשל במסירה",cancelled:"בוטל"};
 var ACT={picked:"נאסף",enroute:"יצאתי ללקוח",done:"נמסר",returning:"בדרך חזרה למשרד",returned:"הגעתי למשרד"};
@@ -133,7 +133,7 @@ var AUTO_DEF={
 var AUTO=Object.assign({},AUTO_DEF);
 var FAIL_REASONS=["אין מענה","כתובת שגויה","נדחה על ידי הלקוח למועד אחר","אחר (פירוט חופשי)"];
 function trackLink(p){return TRACK_URL?TRACK_URL+"?n="+encodeURIComponent(p.number||"")+"&p="+encodeURIComponent(normPhone(p.phone)):""}
-function fillTpl(t,p){return t.replace(/\{שם\}/g,p.name||"").replace(/\{מספר\}/g,p.number||"").replace(/\{כתובת\}/g,p.address||"").replace(/\{קישור\}/g,trackLink(p))}
+function fillTpl(t,p){return t.replace(/\{שם\}/g,p.name||"").replace(/\{מספר\}/g,p.number||"").replace(/\{כתובת\}/g,p.address||"").replace(/\{סכום\}/g,p.codAmount?fm(p.codAmount):"").replace(/\{קישור\}/g,trackLink(p))}
 function msgFor(p){return fillTpl(tpl,p)}
 function applyMsgDoc(x){
   if(typeof x.text==="string"&&x.text)tpl=x.text;
@@ -219,6 +219,7 @@ function card(p,role){
   h+='<div class="tags"><span class="tag">#'+esc(p.number||"—")+'</span><span class="tag">'+T[p.type]+'</span>'+(RET.indexOf(p.type)>-1?'<span class="tag ret">'+(p.type==="pickup"?'חזור בלבד':'הלוך וחזור')+'</span>':'')+'<span class="tag'+(p.status==="failed"||p.status==="cancelled"?' bad':'')+'">'+SL(p,p.status)+'</span>'+(role==="office"?'<span class="tag">'+fm(priceOf(p))+'</span>':'')+'</div></div>';
   h+='<div class="timer '+t.cls+'">'+t.txt+'</div></div>';
   if(p.address)h+='<div>'+esc(p.address)+'</div>';
+  if(p.type==="cod")h+='<div class="note" style="font-weight:700;margin:4px 0">💵 לגבות: '+fm(p.codAmount||0)+'</div>';
   h+=links(p);
   if(p.notes)h+='<div class="note">'+esc(p.notes)+'</div>';
   if(p.status==="failed"&&p.failReason)h+='<div class="note" style="border-inline-start:4px solid var(--bad)"><b>כשל במסירה:</b> '+esc(p.failReason)+'</div>';
@@ -292,6 +293,7 @@ function openForm(id){
   +'<label for="fNum">מספר חבילה</label><input id="fNum" value="'+esc(p.number)+'">'
   +'<label for="fType">סוג משלוח</label><select class="f" id="fType">'+Object.keys(T).map(function(k){return '<option value="'+k+'"'+(k===p.type?' selected':'')+'>'+typeLabel(k)+'</option>'}).join("")+'</select>'
   +'<label for="fPrice">מחיר (₪)</label><input id="fPrice" type="number" inputmode="decimal" min="0" step="0.5" value="'+(id?priceOf(p):(prices[p.type]||0))+'">'
+  +'<div id="codBox" style="display:'+(p.type==="cod"?'block':'none')+'"><label for="fCod">סכום לגבייה (₪)</label><input id="fCod" type="number" inputmode="decimal" min="0" step="0.5" value="'+(p.codAmount||"")+'"></div>'
   +'<label for="fNotes">הערות</label><textarea id="fNotes" rows="2">'+esc(p.notes)+'</textarea>'
   +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="save" style="flex:1">שמירה</button><button class="btn sec" id="cancel">ביטול</button></div>'
   +(id?'<div style="margin-top:8px"><button class="btn del" id="del">מחיקת משלוח</button></div>':'')
@@ -305,13 +307,14 @@ function openForm(id){
     var rec=id?Object.assign({},p):{id:"p"+Date.now(),status:"new",createdAt:Date.now()};
     rec.name=name;rec.address=document.getElementById("fAddr").value.trim();rec.phone=document.getElementById("fPhone").value.trim();
     rec.number=document.getElementById("fNum").value.trim();rec.type=document.getElementById("fType").value;rec.notes=document.getElementById("fNotes").value.trim();rec.price=parseFloat(document.getElementById("fPrice").value)||0;
+    if(rec.type==="cod"){rec.codAmount=parseFloat(document.getElementById("fCod").value)||0;if(!(rec.codAmount>0)){toast("הזן סכום לגבייה");document.getElementById("fCod").focus();return}}else delete rec.codAmount;
     if(flow(rec).indexOf(rec.status)<0&&rec.status!=="failed"&&rec.status!=="cancelled")rec.status="done";
     if(!id)rec.log=[{t:rec.createdAt,x:"נוצר",b:"משרד"}];
-    else{if(before!==[rec.name,rec.address,rec.phone,rec.number,rec.type,rec.notes].join("|"))addLog(rec,"פרטי המשלוח עודכנו");if(priceOf(p)!==rec.price)addLog(rec,"מחיר עודכן: "+fm(priceOf(p))+" ← "+fm(rec.price))}
+    else{if(before!==[rec.name,rec.address,rec.phone,rec.number,rec.type,rec.notes].join("|"))addLog(rec,"פרטי המשלוח עודכנו");if(priceOf(p)!==rec.price)addLog(rec,"מחיר עודכן: "+fm(priceOf(p))+" ← "+fm(rec.price));if((p.codAmount||0)!==(rec.codAmount||0))addLog(rec,"סכום לגבייה: "+fm(p.codAmount||0)+" ← "+fm(rec.codAmount||0))}
     save(rec);closeForm();
   };
   if(id)document.getElementById("del").onclick=function(){if(!this.dataset.sure){this.dataset.sure=1;this.textContent="לחץ שוב לאישור מחיקה";return}remove(id);closeForm()};
-  document.getElementById("fType").onchange=function(){document.getElementById("fPrice").value=prices[this.value]||0};
+  document.getElementById("fType").onchange=function(){document.getElementById("fPrice").value=prices[this.value]||0;document.getElementById("codBox").style.display=this.value==="cod"?"block":"none"};
   attachPlaces();
   document.getElementById("fName").focus();
 }
@@ -413,6 +416,7 @@ var REP_COLS=[
  ["type","סוג",function(p){return typeLabel(p.type)}],
  ["status","סטטוס",function(p){return SL(p,p.status)}],
  ["price","מחיר",function(p){return priceOf(p)}],
+ ["cod","סכום לגבייה",function(p){return p.type==="cod"?(p.codAmount||0):""}],
  ["created","נוצר",function(p){return fmt(p.createdAt)}],
  ["done","נמסר",function(p){return p.doneAt?fmt(p.doneAt):""}],
  ["notes","הערות",function(p){return p.notes||""}],
@@ -469,7 +473,7 @@ function showPrint(rows,cols,f){
   v.innerHTML='<div class="noprint" style="display:flex;gap:8px;margin-bottom:10px"><button class="btn" id="pvPrint">🖨️ הדפסה</button><button class="btn sec" id="pvClose">סגירה</button></div>'
    +'<h2 style="margin:0 0 4px">פירוט משלוחים</h2><div style="margin-bottom:8px">תקופה: '+esc(range)+' · '+rows.length+' משלוחים'+(canOffice?' · נמסרו '+done+' בסך '+esc(fm(total)):'')+' · הופק '+esc(fmt(Date.now()))+'</div>'
    +'<table><thead><tr>'+cols.map(function(c){return '<th>'+esc(c[1])+'</th>'}).join("")+'</tr></thead><tbody>'
-   +rows.map(function(p){return '<tr>'+cols.map(function(c){var x=c[2](p);return '<td>'+esc(c[0]==="price"?fm(x):x)+'</td>'}).join("")+'</tr>'}).join("")+'</tbody></table>';
+   +rows.map(function(p){return '<tr>'+cols.map(function(c){var x=c[2](p);return '<td>'+esc((c[0]==="price"||c[0]==="cod")&&x!==""?fm(x):x)+'</td>'}).join("")+'</tr>'}).join("")+'</tbody></table>';
   document.body.appendChild(v);
   document.getElementById("pvClose").onclick=function(){v.remove()};
   document.getElementById("pvPrint").onclick=function(){try{window.print()}catch(e){toast("ההדפסה נחסמה בדפדפן")}};
@@ -502,7 +506,7 @@ function openTheme(){
 function openMsg(){
   var m=document.getElementById("modal");
   var fields=[["text","הודעה כללית (כפתורי וואטסאפ ו-SMS בכרטיס)",tpl],["pickup","פתיחת בקשת איסוף (כפתור 📲 בכרטיס איסוף)",AUTO.pickup],["picked","שינוי סטטוס ל\"נאסף\"",AUTO.picked],["enroute","שינוי סטטוס ל\"בדרך ללקוח\"",AUTO.enroute],["done","שינוי סטטוס ל\"נמסר\"",AUTO.done]];
-  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="הודעות ללקוח"><h2 style="margin:0 0 4px">הודעות ללקוח</h2><p style="color:var(--mute);margin:0">משתנים: {שם} {מספר} {כתובת} {קישור} (קישור אישי לדף איתור החבילה). ההודעות האוטומטיות נפתחות לשליח בוואטסאפ בעת שינוי הסטטוס.</p>'
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="הודעות ללקוח"><h2 style="margin:0 0 4px">הודעות ללקוח</h2><p style="color:var(--mute);margin:0">משתנים: {שם} {מספר} {כתובת} {סכום} {קישור} (קישור אישי לדף איתור החבילה). ההודעות האוטומטיות נפתחות לשליח בוואטסאפ בעת שינוי הסטטוס.</p>'
   +fields.map(function(f){return '<label for="tp_'+f[0]+'">'+f[1]+'</label><textarea id="tp_'+f[0]+'" rows="4">'+esc(f[2])+'</textarea>'}).join("")
   +'<div style="display:flex;gap:8px;margin-top:14px"><button class="btn" id="tplSave" style="flex:1">שמירה</button><button class="btn sec" id="tplReset">ברירת מחדל</button><button class="btn sec" id="cancel">ביטול</button></div></div></div>';
   document.getElementById("cancel").onclick=closeForm;
@@ -571,7 +575,7 @@ function setStatus(id,st,reason){
 
 function normPhone(ph){var d=String(ph||"").replace(/\D/g,"");if(d.indexOf("972")===0)d="0"+d.slice(3);return d}
 function matches(p,q){
-  var hay=[p.name,p.address,p.phone,normPhone(p.phone),p.number,p.notes,p.courierNote,p.failReason,T[p.type],typeLabel(p.type),SL(p,p.status),canOffice?priceOf(p):""].join(" ").toLowerCase();
+  var hay=[p.name,p.address,p.phone,normPhone(p.phone),p.number,p.notes,p.courierNote,p.failReason,p.type==="cod"?p.codAmount:"",T[p.type],typeLabel(p.type),SL(p,p.status),canOffice?priceOf(p):""].join(" ").toLowerCase();
   return q.toLowerCase().split(/\s+/).filter(Boolean).every(function(t){return hay.indexOf(t)>-1});
 }
 function trackKey(p){
