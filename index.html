@@ -3,7 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="robots" content="noindex">
-<link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" type="image/x-icon" href="favicon.ico"><link rel="apple-touch-icon" href="apple-touch-icon.png"><meta name="theme-color" content="#14213d">
+<link rel="icon" type="image/svg+xml" href="favicon.svg"><link rel="icon" type="image/x-icon" href="favicon.ico"><link rel="apple-touch-icon" href="apple-touch-icon.png"><link rel="manifest" href="manifest.webmanifest"><meta name="mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-capable" content="yes"><meta name="apple-mobile-web-app-title" content="משלוחים"><meta name="theme-color" content="#14213d">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>ניהול משלוחים</title>
 <link href="https://fonts.googleapis.com/css2?family=Heebo:wght@400;500;700;800&display=swap" rel="stylesheet">
@@ -76,6 +76,7 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.sum div{background:var(--tint);border-radius:12px;padding:10px;text-align:center}.sum b{display:block;font-size:20px}.sum span{font-size:12px;color:var(--mute)}
 @media print{body>*:not(#printView){display:none!important}#printView{position:static!important;overflow:visible!important}.noprint{display:none!important}}
 #printView{position:fixed;inset:0;z-index:40;background:#fff;color:#000;overflow:auto;padding:16px;font-size:13px}#printView table{border-collapse:collapse;width:100%}#printView th,#printView td{border:1px solid #999;padding:4px 6px;text-align:start;vertical-align:top}#printView th{background:#eee}
+.bellN{position:absolute;top:-4px;inset-inline-end:-4px;background:var(--bad);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;line-height:18px;text-align:center;padding:0 4px;font-weight:700}
 .local{background:var(--hi);color:#14213d;border-radius:10px;padding:6px 10px;font-size:13px;margin-bottom:10px}
 </style>
 </head>
@@ -83,6 +84,8 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <div class="wrap">
   <header>
     <h1>משלוחים <span style="font-size:12px;color:var(--mute);font-weight:500">v<span id="verNum"></span></span></h1>
+    <button class="btn sec" id="bellBtn" aria-label="התראות" style="padding:8px 12px;position:relative">🔔<span id="bellN" class="bellN" style="display:none">0</span></button>
+    <button class="btn sec" id="instBtn" style="display:none;padding:8px 12px">📲 התקנה</button>
     <button class="btn sec" id="themeBtn" aria-label="מראה ופלטת צבעים" style="padding:8px 12px">🎨</button>
     <button class="btn sec" id="logout" style="display:none">התנתקות</button>
     <div class="seg" role="tablist"><button id="vOffice" role="tab">משרד</button><button id="vCourier" role="tab">שליח</button></div>
@@ -97,10 +100,11 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-var APP_VERSION="1.6.0";
-var CHANGELOG=[["1.6.0","שינוי שם הסוג לגוביינא, ושדה סכום לגבייה במשלוח גוביינא (מוצג לשליח, בדוח ובהודעות)"],["1.5.2","אייקון חבילה בלשונית הדפדפן"],["1.5.1","קישור איתור החבילה בהודעות מפנה לכתובת החדשה"],["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
+var APP_VERSION="1.7.0";
+var CHANGELOG=[["1.7.0","לשליח: מוני קטגוריות, חיפוש ודוחות; התקנה כאפליקציה; מרכז התראות על משלוחים חדשים עם התראת מכשיר"],["1.6.0","שינוי שם הסוג לגוביינא, ושדה סכום לגבייה במשלוח גוביינא (מוצג לשליח, בדוח ובהודעות)"],["1.5.2","אייקון חבילה בלשונית הדפדפן"],["1.5.1","קישור איתור החבילה בהודעות מפנה לכתובת החדשה"],["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
 var GOOGLE_KEY="";
 var TRACK_URL="https://tamid-bashlichut.flytech.workers.dev/track.html";
+var SW_OK=true;
 var query="";
 var T={regular:"רגיל",double:"כפול",pickup:"איסוף",express:"מהיר",carton:"קרטון",cod:"גוביינא"};
 var RET=["double","pickup","cod"];
@@ -242,10 +246,24 @@ function card(p,role){
 
 function sortActive(a,b){return timer(a).left-timer(b).left}
 
+function tilesHtml(active){
+  var late=active.filter(function(p){return timer(p).left<0}).length;
+  var cnt=function(st){return parcels.filter(function(p){return p.status===st}).length};
+  var tiles=[["active","פעילים",active.length],["late","באיחור",late],["new","חדשים",cnt("new")],["picked","נאספו",cnt("picked")],["enroute","בדרך ללקוח",cnt("enroute")],["returning","בדרך חזרה",cnt("returning")],["failed","כשלים",cnt("failed")],["cancelled","בוטלו",cnt("cancelled")]];
+  return '<div class="tiles">'+tiles.map(function(x){return '<button class="tile'+(filter===x[0]?' on':'')+((x[0]==="late"||x[0]==="failed")&&x[2]?' bad':'')+'" data-f="'+x[0]+'"><b>'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div>';
+}
+function listByFilter(active){
+  if(filter==="active")return active;
+  if(filter==="late")return active.filter(function(p){return timer(p).left<0});
+  if(filter==="done")return parcels.filter(function(p){return isFinal(p)});
+  if(filter==="all")return parcels.slice().sort(sortActive);
+  return parcels.filter(function(p){return p.status===filter}).sort(sortActive);
+}
 function render(){
   document.getElementById("qWrap").style.display=needLogin?"none":"";
   if(needLogin){showLogin();return}
   if(!canOffice)view="courier";
+  checkNewParcels();
   document.querySelector(".seg").style.display=canOffice?"":"none";
   document.getElementById("vOffice").className=view==="office"?"on":"";
   document.getElementById("vCourier").className=view==="courier"?"on":"";
@@ -253,10 +271,7 @@ function render(){
   if(localMode)h+='<div class="local">מצב מקומי: הנתונים נשמרים במכשיר הזה בלבד ולא משותפים בין משרד לשליח.</div>';
   var active=parcels.filter(function(p){return !isFinal(p)}).sort(sortActive);
   if(view==="office"){
-    var late=active.filter(function(p){return timer(p).left<0}).length;
-    var cnt=function(s){return parcels.filter(function(p){return p.status===s}).length};
-    var tiles=[["active","פעילים",active.length],["late","באיחור",late],["new","חדשים",cnt("new")],["picked","נאספו",cnt("picked")],["enroute","בדרך ללקוח",cnt("enroute")],["returning","בדרך חזרה",cnt("returning")],["failed","כשלים",cnt("failed")],["cancelled","בוטלו",cnt("cancelled")]];
-    h+='<div class="tiles">'+tiles.map(function(x){return '<button class="tile'+(filter===x[0]?' on':'')+((x[0]==="late"||x[0]==="failed")&&x[2]?' bad':'')+'" data-f="'+x[0]+'"><b>'+x[2]+'</b><span>'+x[1]+'</span></button>'}).join("")+'</div>';
+    h+=tilesHtml(active);
     h+='<div class="bar"><button class="btn" id="add" style="flex:1">+ משלוח חדש</button><button class="btn sec" id="msgset">הודעה</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>'+('<div class="bar"><button class="btn sec" id="repbtn" style="flex:1">📄 דוח</button>'+(canAdmin?'<button class="btn sec" id="finbtn" style="flex:1">💰 כספים</button><button class="btn sec" id="setbtn" style="flex:1">⚙ הגדרות</button>':'')+'</div>');
     var list;
     if(query.trim()){list=parcels.filter(function(p){return matches(p,query.trim())}).sort(function(a,b){return b.createdAt-a.createdAt});h+='<div class="sub">נמצאו '+list.length+' תוצאות</div>'}
@@ -266,10 +281,14 @@ function render(){
     else if(filter==="all")list=parcels.slice().sort(sortActive);
     else list=parcels.filter(function(p){return p.status===filter}).sort(sortActive);
     h+=list.length?list.map(function(p){return card(p,"office")}).join(""):'<div class="empty">אין משלוחים להצגה. לחץ על &quot;משלוח חדש&quot; כדי להתחיל.</div>';
-  }else if(query.trim()){
+  }else{
+    h+=tilesHtml(active)+'<div class="bar"><button class="btn sec" id="repbtn" style="flex:1">📄 דוח</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>';
+    if(query.trim()){
     var ql=parcels.filter(function(p){return matches(p,query.trim())}).sort(function(a,b){return b.createdAt-a.createdAt});
     h+='<div class="sub">נמצאו '+ql.length+' תוצאות</div>'+ql.map(function(p){return card(p,"courier")}).join("");
-  }else{
+    }else if(filter!=="active"){
+    var fl=listByFilter(active);h+=fl.length?fl.map(function(p){return card(p,"courier")}).join(""):'<div class="empty">אין משלוחים להצגה.</div>';
+    }else{
     var groups=[["picked","בדרך אליי: צריך לאסוף"],["enroute","בדרך ללקוח"],["returning","בדרך חזרה למשרד"]];
     var fresh=active.filter(function(p){return p.status==="new"});
     var shown=fresh.length;
@@ -279,6 +298,7 @@ function render(){
       if(l.length){shown+=l.length;h+='<div class="sub">'+g[1]+' ('+l.length+')</div>'+l.map(function(p){return card(p,"courier")}).join("")}
     });
     if(!shown)h+='<div class="empty">אין משלוחים פעילים. הכל נקי.</div>';
+    }
   }
   app.innerHTML=h;
 }
@@ -503,6 +523,73 @@ function openTheme(){
     setTheme(this.dataset.mode?{mode:this.dataset.mode}:{pal:this.dataset.pal});openTheme();
   }});
 }
+var NOTIFS=[],lastSeen=null,deferredInstall=null;
+function loadNotifs(){
+  try{NOTIFS=JSON.parse(localStorage.getItem("notifs")||"[]")}catch(e){NOTIFS=[]}
+  try{lastSeen=parseInt(localStorage.getItem("lastSeen")||"",10)||null}catch(e){lastSeen=null}
+}
+function saveNotifs(){try{localStorage.setItem("notifs",JSON.stringify(NOTIFS.slice(0,50)));if(lastSeen)localStorage.setItem("lastSeen",String(lastSeen))}catch(e){}}
+function updateBell(){
+  var n=NOTIFS.filter(function(x){return !x.read}).length,b=document.getElementById("bellN");
+  if(b){b.textContent=n;b.style.display=n?"":"none"}
+  try{if(navigator.setAppBadge){n?navigator.setAppBadge(n):navigator.clearAppBadge()}}catch(e){}
+}
+function deviceNotify(title,body,tag,pid){
+  try{
+    if(!("Notification" in window)||Notification.permission!=="granted")return;
+    var o={body:body,icon:"icon-192.png",badge:"icon-192.png",tag:tag,vibrate:[200,100,200],dir:"rtl",lang:"he",data:{pid:pid}};
+    if(navigator.serviceWorker&&navigator.serviceWorker.getRegistration){
+      navigator.serviceWorker.getRegistration().then(function(r){if(r)r.showNotification(title,o);else new Notification(title,o)}).catch(function(){try{new Notification(title,o)}catch(e){}});
+    }else new Notification(title,o);
+  }catch(e){}
+}
+function checkNewParcels(){
+  if(canOffice||!parcels.length&&lastSeen!==null)return;
+  var max=lastSeen||0;
+  if(lastSeen===null){
+    parcels.forEach(function(p){if(p.createdAt>max)max=p.createdAt});
+    lastSeen=max||Date.now();saveNotifs();return;
+  }
+  var fresh=parcels.filter(function(p){return p.createdAt>lastSeen&&!NOTIFS.some(function(n){return n.pid===p.id})}).sort(function(a,b){return a.createdAt-b.createdAt});
+  if(!fresh.length)return;
+  fresh.forEach(function(p){
+    if(p.createdAt>max)max=p.createdAt;
+    NOTIFS.unshift({id:"n"+p.id,pid:p.id,t:p.createdAt,text:"משלוח חדש: "+p.name+(p.address?" · "+p.address:""),read:false});
+  });
+  lastSeen=max;saveNotifs();updateBell();
+  if(fresh.length>3){toast(fresh.length+" משלוחים חדשים");deviceNotify("משלוחים חדשים",fresh.length+" משלוחים חדשים ממתינים","new-batch","")}
+  else fresh.forEach(function(p){toast("משלוח חדש: "+p.name);deviceNotify("משלוח חדש",p.name+(p.address?" · "+p.address:""),"parcel-"+p.id,p.id)});
+}
+function openNotifs(){
+  var m=document.getElementById("modal"),supported="Notification" in window,perm=supported?Notification.permission:"unsupported";
+  var items=NOTIFS.map(function(n){return '<li style="padding:8px 0;border-bottom:1px solid var(--line)'+(n.read?';opacity:.65':'')+'"><b>'+(n.read?'':'● ')+esc(n.text)+'</b><div style="font-size:12px;color:var(--mute)">'+esc(fmt(n.t))+'</div></li>'}).join("");
+  var permHtml=!supported?'<p style="color:var(--mute)">הדפדפן הזה לא תומך בהתראות מכשיר.</p>':perm==="granted"?'<p style="color:var(--ok);font-weight:700">התראות מכשיר פעילות ✔</p><button class="btn sec" id="ntTest" style="width:100%">שליחת התראת בדיקה</button>':perm==="denied"?'<p style="color:var(--bad);font-weight:700">ההתראות חסומות. יש לאפשר אותן בהגדרות הדפדפן או האפליקציה.</p>':'<button class="btn big" id="ntAsk">🔔 הפעלת התראות במכשיר</button>';
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="התראות"><h2 style="margin:0 0 4px">התראות</h2>'
+   +'<p style="color:var(--mute);margin:0 0 8px">מוצגת כאן כל יצירה של משלוח חדש. התראת מכשיר מגיעה כשהאפליקציה פתוחה או פעילה ברקע.</p>'+permHtml
+   +'<div class="sub">משלוחים חדשים</div><ul style="list-style:none;margin:0;padding:0">'+(items||'<li class="empty">אין התראות</li>')+'</ul>'
+   +'<div style="display:flex;gap:8px;margin-top:12px"><button class="btn sec" id="ntClear" style="flex:1">ניקוי</button><button class="btn big" id="cancel" style="flex:2">סגירה</button></div></div></div>';
+  NOTIFS.forEach(function(n){n.read=true});saveNotifs();updateBell();
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("ntClear").onclick=function(){NOTIFS=[];saveNotifs();openNotifs()};
+  var ask=document.getElementById("ntAsk");if(ask)ask.onclick=function(){Notification.requestPermission().then(function(){openNotifs()})};
+  var test=document.getElementById("ntTest");if(test)test.onclick=function(){deviceNotify("בדיקת התראה","ההתראות עובדות","test","");toast("נשלחה התראת בדיקה")};
+}
+function isStandalone(){return (window.matchMedia&&matchMedia("(display-mode: standalone)").matches)||navigator.standalone===true}
+function initInstall(){
+  if(!SW_OK)return;
+  if("serviceWorker" in navigator&&location.protocol==="https:")navigator.serviceWorker.register("sw.js").catch(function(){});
+  window.addEventListener("beforeinstallprompt",function(e){e.preventDefault();deferredInstall=e;if(!isStandalone())document.getElementById("instBtn").style.display=""});
+  window.addEventListener("appinstalled",function(){deferredInstall=null;document.getElementById("instBtn").style.display="none"});
+  if(/iphone|ipad|ipod/i.test(navigator.userAgent)&&!isStandalone())document.getElementById("instBtn").style.display="";
+}
+function installApp(){
+  if(deferredInstall){deferredInstall.prompt();deferredInstall.userChoice&&deferredInstall.userChoice.then(function(){deferredInstall=null;document.getElementById("instBtn").style.display="none"});return}
+  var m=document.getElementById("modal");
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="התקנה"><h2 style="margin:0 0 8px">התקנה כאפליקציה</h2><p style="margin:0 0 8px">באייפון: לחץ על כפתור השיתוף <b>⬆️</b> בסרגל של Safari, בחר <b>הוסף למסך הבית</b> ואשר.</p><p style="margin:0 0 8px">באנדרואיד: בתפריט הדפדפן (⋮) בחר <b>התקן אפליקציה</b> או <b>הוסף למסך הבית</b>.</p><button class="btn big" id="cancel">הבנתי</button></div></div>';
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+}
 function openMsg(){
   var m=document.getElementById("modal");
   var fields=[["text","הודעה כללית (כפתורי וואטסאפ ו-SMS בכרטיס)",tpl],["pickup","פתיחת בקשת איסוף (כפתור 📲 בכרטיס איסוף)",AUTO.pickup],["picked","שינוי סטטוס ל\"נאסף\"",AUTO.picked],["enroute","שינוי סטטוס ל\"בדרך ללקוח\"",AUTO.enroute],["done","שינוי סטטוס ל\"נמסר\"",AUTO.done]];
@@ -626,6 +713,8 @@ document.addEventListener("click",function(e){
   if(t.id==="finbtn"){openFin();return}
   if(t.id==="repbtn"){openReport();return}
   if(t.id==="themeBtn"){openTheme();return}
+  if(t.id==="bellBtn"){openNotifs();return}
+  if(t.id==="instBtn"){installApp();return}
   if(t.id==="setbtn"){openSet();return}
   if(t.dataset.pv){openPhoto(t.dataset.pv);return}
   if(t.dataset.pick){openPick(t.dataset.pick);return}
@@ -670,7 +759,7 @@ document.addEventListener("click",function(e){
   setTimeout(function(){if(!left)openContact(kind,pid)},900);
 });
 try{document.getElementById("verNum").textContent=APP_VERSION}catch(e){}
-applyTheme();
+applyTheme();loadNotifs();updateBell();initInstall();
 document.getElementById("q").addEventListener("input",function(){query=this.value;render()});
 try{var tt=localStorage.getItem("tpl");if(tt)tpl=tt}catch(e){}
 try{var at=JSON.parse(localStorage.getItem("autotpl")||"null");if(at)Object.assign(AUTO,at)}catch(e){}
