@@ -40,7 +40,7 @@ button:focus-visible,a:focus-visible,input:focus-visible,select:focus-visible,te
 .tile span{font-size:13px;color:var(--mute)}
 .tile.on{border-color:var(--acc);box-shadow:0 0 0 2px var(--acc)}
 .tile.bad b{color:var(--bad)}
-.bar{display:flex;gap:8px;margin-bottom:12px}
+.bar{display:flex;flex-wrap:wrap;gap:8px;margin-bottom:12px}
 .btn{border:0;border-radius:12px;padding:12px 16px;font:inherit;font-weight:700;cursor:pointer;background:var(--acc);color:var(--onacc)}
 .btn.sec{background:var(--tint);color:var(--ink)}
 .btn.big{width:100%;padding:14px;font-size:17px}
@@ -74,7 +74,24 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 .full{width:100%;border-radius:12px;display:block;margin:8px 0}
 .addrl{position:absolute;z-index:25;inset-inline:0;top:100%;background:var(--card);border:1px solid var(--line);border-radius:10px;max-height:220px;overflow:auto;box-shadow:0 6px 18px rgba(0,0,0,.25)}.addrl button{display:block;width:100%;text-align:start;border:0;background:none;color:var(--ink);font:inherit;padding:10px;border-bottom:1px solid var(--line);cursor:pointer}
 .sum{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin:10px 0}.sum div{background:var(--tint);border-radius:12px;padding:10px;text-align:center}.sum b{display:block;font-size:20px}.sum span{font-size:12px;color:var(--mute)}
-@media print{body>*:not(#printView){display:none!important}#printView{position:static!important;overflow:visible!important}.noprint{display:none!important}}
+@page labels{size:A4;margin:0}
+@media print{body>*:not(#printView):not(#labelView){display:none!important}#printView,#labelView{position:static!important;overflow:visible!important}#labelView{background:#fff!important;padding:0!important}.noprint{display:none!important}.pwrap{zoom:1!important;margin:0!important;width:auto!important}.lpage{box-shadow:none!important}.lbl{outline:none!important}}
+.rowi{background:var(--card);border:1px solid var(--line);border-radius:12px;margin-bottom:8px;border-inline-start:6px solid var(--line)}.rowi.ok{border-inline-start-color:var(--ok)}.rowi.warn{border-inline-start-color:var(--warn)}.rowi.bad{border-inline-start-color:var(--bad)}
+.rowt{display:flex;align-items:center;gap:6px;padding:2px 8px}.rowt input[type=checkbox]{width:20px;height:20px;flex:none}
+button.rowh{flex:1;min-width:0;display:flex;align-items:center;gap:8px;border:0;background:none;color:var(--ink);font:inherit;text-align:start;padding:10px 0;cursor:pointer}
+.rowh .rn{font-weight:800;white-space:nowrap}.rowh .rm{flex:1;min-width:0;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.rowh .rm small{color:var(--mute)}
+.rowb{padding:0 8px 8px}.rowb .card{margin-bottom:0}
+@media (max-width:520px){.hide-s{display:none}}
+#labelView{position:fixed;inset:0;z-index:40;background:#e5e7eb;color:#000;overflow:auto;padding:12px}
+#labelView .pwrap{margin:0 auto 14px;width:210mm}
+.lpage{page:labels;position:relative;width:210mm;height:296.5mm;overflow:hidden;background:#fff;box-shadow:0 2px 10px rgba(0,0,0,.3);page-break-after:always}.lpage:last-child{page-break-after:auto}
+.lgrid{position:absolute;width:210mm;height:280mm;direction:ltr}
+.lbl{position:absolute;width:105mm;height:70mm;box-sizing:border-box;padding:4mm 5mm;overflow:hidden;direction:rtl;display:flex;flex-direction:column;font-family:Heebo,Arial,sans-serif;color:#000;outline:1px dashed #ccc}
+.lt{display:flex;justify-content:space-between;align-items:center;font-size:10pt}.lty{font-weight:800;border:1.5px solid #000;border-radius:2mm;padding:.3mm 2mm}.lty.cod{background:#000;color:#fff}
+.ln{font-size:17pt;font-weight:800;line-height:1.1;margin-top:1.5mm;max-height:9mm;overflow:hidden}.la{font-size:12pt;line-height:1.15;max-height:11mm;overflow:hidden}
+.lp{font-size:12pt;font-weight:700}.lnote{font-size:8.5pt;line-height:1.1;max-height:7mm;overflow:hidden;color:#222}
+.lb{margin-top:auto;text-align:center}.lb svg{display:block;margin:0 auto}.lnum{font-size:15pt;font-weight:800;letter-spacing:1px;line-height:1.1}
+.local{background
 #printView{position:fixed;inset:0;z-index:40;background:#fff;color:#000;overflow:auto;padding:16px;font-size:13px}#printView table{border-collapse:collapse;width:100%}#printView th,#printView td{border:1px solid #999;padding:4px 6px;text-align:start;vertical-align:top}#printView th{background:#eee}
 .bellN{position:absolute;top:-4px;inset-inline-end:-4px;background:var(--bad);color:#fff;border-radius:10px;min-width:18px;height:18px;font-size:11px;line-height:18px;text-align:center;padding:0 4px;font-weight:700}
 .local{background:var(--hi);color:#14213d;border-radius:10px;padding:6px 10px;font-size:13px;margin-bottom:10px}
@@ -100,8 +117,8 @@ details.hist{margin-top:8px;font-size:13px;color:var(--mute)}details.hist summar
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
 <script>
-var APP_VERSION="1.7.0";
-var CHANGELOG=[["1.7.0","לשליח: מוני קטגוריות, חיפוש ודוחות; התקנה כאפליקציה; מרכז התראות על משלוחים חדשים עם התראת מכשיר"],["1.6.0","שינוי שם הסוג לגוביינא, ושדה סכום לגבייה במשלוח גוביינא (מוצג לשליח, בדוח ובהודעות)"],["1.5.2","אייקון חבילה בלשונית הדפדפן"],["1.5.1","קישור איתור החבילה בהודעות מפנה לכתובת החדשה"],["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
+var APP_VERSION="1.8.0";
+var CHANGELOG=[["1.8.0","תצוגת שורות מתרחבות במשרד, הדפסת מדבקות 70×105 עם ברקוד (8 בדף A4) עם בחירת מיקומים פנויים"],["1.7.0","לשליח: מוני קטגוריות, חיפוש ודוחות; התקנה כאפליקציה; מרכז התראות על משלוחים חדשים עם התראת מכשיר"],["1.6.0","שינוי שם הסוג לגוביינא, ושדה סכום לגבייה במשלוח גוביינא (מוצג לשליח, בדוח ובהודעות)"],["1.5.2","אייקון חבילה בלשונית הדפדפן"],["1.5.1","קישור איתור החבילה בהודעות מפנה לכתובת החדשה"],["1.5.0","בחירת מראה אישית לכל משתמש: אוטומטי, בהיר או כהה, וחמש פלטות צבעים"],["1.4.0","דוח פירוט משלוחים: סינון לפי תאריך, סטטוס וסוג, בחירת עמודות, הדפסה והורדה לאקסל"],["1.3.0","סטטוס ביטול וסטטוס כשל במסירה עם סיבה, חלון וואטסאפ אוטומטי ללקוח בשינוי סטטוס, הודעות ניתנות לעריכה, קישור איתור אישי"],["1.2.0","חיפוש לפי כל השדות, דף איתור חבילה ללקוחות (מספר חבילה וטלפון), תפקידים: אדמין, משרד ושליח"],["1.1.0","מחירון לפי סוג, כספים ותשלומים לשליח, חיפוש כתובת בגוגל, איסוף חזור בלבד, מספר גרסה"],["1.0.0","גרסה ראשונה: משלוחים, סטטוסים, טיימר, היסטוריה, צילום, הודעות"]];
 var GOOGLE_KEY="";
 var TRACK_URL="https://tamid-bashlichut.flytech.workers.dev/track.html";
 var SW_OK=true;
@@ -115,6 +132,7 @@ var WORKDAYS=[0,1,2,3,4];  // ראשון עד חמישי
 
 var DEFAULT_TPL="שלום {שם}, כאן שליח המשלוחים. החבילה שלך (מספר {מספר}) בדרך אליך. נא להיות זמינים בטלפון.";
 var DEFAULT_PRICES={regular:0,double:0,pickup:0,express:0,carton:0,cod:0},prices=Object.assign({},DEFAULT_PRICES),payments=[],canAdmin=true;
+var viewMode="rows",expanded={},selected={},lastList=[];
 var parcels=[], view="office", filter="active", db=null, localMode=false, tpl=DEFAULT_TPL;
 var canOffice=true;
 function fmt(t){return new Date(t).toLocaleString("he-IL",{day:"2-digit",month:"2-digit",year:"2-digit",hour:"2-digit",minute:"2-digit"})}
@@ -272,7 +290,7 @@ function render(){
   var active=parcels.filter(function(p){return !isFinal(p)}).sort(sortActive);
   if(view==="office"){
     h+=tilesHtml(active);
-    h+='<div class="bar"><button class="btn" id="add" style="flex:1">+ משלוח חדש</button><button class="btn sec" id="msgset">הודעה</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>'+('<div class="bar"><button class="btn sec" id="repbtn" style="flex:1">📄 דוח</button>'+(canAdmin?'<button class="btn sec" id="finbtn" style="flex:1">💰 כספים</button><button class="btn sec" id="setbtn" style="flex:1">⚙ הגדרות</button>':'')+'</div>');
+    h+='<div class="bar"><button class="btn" id="add" style="flex:1">+ משלוח חדש</button><button class="btn sec" id="msgset">הודעה</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>'+('<div class="bar"><button class="btn sec" id="repbtn" style="flex:1">📄 דוח</button><button class="btn sec" id="labbtn" style="flex:1">🏷️ מדבקות</button><button class="btn sec" id="modebtn" style="flex:1">'+(viewMode==="rows"?'▦ כרטיסים':'☰ שורות')+'</button>'+(canAdmin?'<button class="btn sec" id="finbtn" style="flex:1">💰 כספים</button><button class="btn sec" id="setbtn" style="flex:1">⚙ הגדרות</button>':'')+'</div>');
     var list;
     if(query.trim()){list=parcels.filter(function(p){return matches(p,query.trim())}).sort(function(a,b){return b.createdAt-a.createdAt});h+='<div class="sub">נמצאו '+list.length+' תוצאות</div>'}
     else if(filter==="active")list=active;
@@ -280,7 +298,7 @@ function render(){
     else if(filter==="done")list=parcels.filter(function(p){return isFinal(p)});
     else if(filter==="all")list=parcels.slice().sort(sortActive);
     else list=parcels.filter(function(p){return p.status===filter}).sort(sortActive);
-    h+=list.length?list.map(function(p){return card(p,"office")}).join(""):'<div class="empty">אין משלוחים להצגה. לחץ על &quot;משלוח חדש&quot; כדי להתחיל.</div>';
+    h+=list.length?listHtml(list):'<div class="empty">אין משלוחים להצגה. לחץ על &quot;משלוח חדש&quot; כדי להתחיל.</div>';
   }else{
     h+=tilesHtml(active)+'<div class="bar"><button class="btn sec" id="repbtn" style="flex:1">📄 דוח</button><button class="btn sec" data-f="done">בוצעו</button><button class="btn sec" data-f="all">הכל</button></div>';
     if(query.trim()){
@@ -590,6 +608,97 @@ function installApp(){
   document.getElementById("cancel").onclick=closeForm;
   document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
 }
+var C128=["11011001100", "11001101100", "11001100110", "10010011000", "10010001100", "10001001100", "10011001000", "10011000100", "10001100100", "11001001000", "11001000100", "11000100100", "10110011100", "10011011100", "10011001110", "10111001100", "10011101100", "10011100110", "11001110010", "11001011100", "11001001110", "11011100100", "11001110100", "11101101110", "11101001100", "11100101100", "11100100110", "11101100100", "11100110100", "11100110010", "11011011000", "11011000110", "11000110110", "10100011000", "10001011000", "10001000110", "10110001000", "10001101000", "10001100010", "11010001000", "11000101000", "11000100010", "10110111000", "10110001110", "10001101110", "10111011000", "10111000110", "10001110110", "11101110110", "11010001110", "11000101110", "11011101000", "11011100010", "11011101110", "11101011000", "11101000110", "11100010110", "11101101000", "11101100010", "11100011010", "11101111010", "11001000010", "11110001010", "10100110000", "10100001100", "10010110000", "10010000110", "10000101100", "10000100110", "10110010000", "10110000100", "10011010000", "10011000010", "10000110100", "10000110010", "11000010010", "11001010000", "11110111010", "11000010100", "10001111010", "10100111100", "10010111100", "10010011110", "10111100100", "10011110100", "10011110010", "11110100100", "11110010100", "11110010010", "11011011110", "11011110110", "11110110110", "10101111000", "10100011110", "10001011110", "10111101000", "10111100010", "11110101000", "11110100010", "10111011110", "10111101110", "11101011110", "11110101110", "11010000100", "11010010000", "11010011100", "1100011101011"];
+function code128B(text){
+  var vals=[104],sum=104;
+  for(var i=0;i<text.length;i++){var c=text.charCodeAt(i);if(c<32||c>126)return null;var v=c-32;vals.push(v);sum+=v*(i+1)}
+  vals.push(sum%103);vals.push(106);
+  var bits="";vals.forEach(function(v){bits+=C128[v]});
+  var x=10,rects="",i2=0;
+  while(i2<bits.length){if(bits.charAt(i2)==="1"){var j=i2;while(j<bits.length&&bits.charAt(j)==="1")j++;rects+='<rect x="'+(x+i2)+'" y="0" width="'+(j-i2)+'" height="1"/>';i2=j}else i2++}
+  return {w:bits.length+20,rects:rects};
+}
+function barcodeSvg(text,maxMm,hMm){
+  var b=code128B(String(text==null?"":text));if(!b||!text)return "";
+  var wmm=Math.min(maxMm,Math.round(b.w*0.5*10)/10);
+  return '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 '+b.w+' 1" preserveAspectRatio="none" width="'+wmm+'mm" height="'+hMm+'mm" shape-rendering="crispEdges"><rect width="'+b.w+'" height="1" fill="#fff"/><g fill="#000">'+b.rects+'</g></svg>';
+}
+function tshort(p){var t=timer(p);if(p.status==="cancelled")return "";if(isStopped(p))return "✔";if(t.left<0)return "איחור "+(-t.left);if(t.left===0)return "יום אחרון";return "נותרו "+t.left}
+function rowHtml(p){
+  var t=timer(p),ex=!!expanded[p.id],bad=(p.status==="failed"||p.status==="cancelled")?" bad":"";
+  return '<div class="rowi '+t.cls+'"><div class="rowt"><input type="checkbox" data-sel="'+p.id+'" aria-label="בחירה"'+(selected[p.id]?' checked':'')+'>'
+   +'<button class="rowh" data-exp="'+p.id+'" aria-expanded="'+ex+'"><span class="rn">#'+esc(p.number||"—")+'</span><span class="rm">'+esc(p.name)+(p.address?' <small>· '+esc(p.address)+'</small>':'')+'</span><span class="tag hide-s">'+esc(T[p.type])+'</span>'+(p.type==="cod"?'<span class="tag ret">💵 '+esc(fm(p.codAmount||0))+'</span>':'')+'<span class="tag'+bad+'">'+esc(SL(p,p.status))+'</span><span class="timer '+t.cls+' hide-s">'+tshort(p)+'</span><span>'+(ex?'▲':'▼')+'</span></button></div>'
+   +(ex?'<div class="rowb">'+card(p,"office")+'</div>':'')+'</div>';
+}
+function selCount(){return parcels.filter(function(p){return selected[p.id]}).length}
+function listHtml(list){
+  lastList=list;
+  if(viewMode==="cards")return list.map(function(p){return card(p,"office")}).join("");
+  var all=list.length&&list.every(function(p){return selected[p.id]});
+  return '<label class="chk" style="margin:0 0 8px"><input type="checkbox" id="selAll"'+(all?' checked':'')+'>בחירת כל המוצגים ('+selCount()+' נבחרו)</label>'+list.map(rowHtml).join("");
+}
+function getAvail(){try{var a=JSON.parse(localStorage.getItem("labelAvail")||"null");if(a&&a.length===8)return a}catch(e){}return [true,true,true,true,true,true,true,true]}
+function getCal(){try{var c=JSON.parse(localStorage.getItem("labelCal")||"null");if(c)return {top:+c.top,left:+c.left}}catch(e){}return {top:8.5,left:0}}
+function labelPlan(n,avail){
+  var first=[],i;for(i=0;i<8;i++)if(avail[i])first.push(i);if(!first.length)first=[0,1,2,3,4,5,6,7];
+  var pages=[],idx=0,slots=first;
+  while(idx<n){var pg=[null,null,null,null,null,null,null,null],used=0;for(var k=0;k<slots.length&&idx<n;k++){pg[slots[k]]=idx++;used++}pages.push({cells:pg,slots:slots,used:used});slots=[0,1,2,3,4,5,6,7]}
+  var last=pages[pages.length-1],rem=last?last.slots.slice(last.used):first,next=[];
+  for(i=0;i<8;i++)next.push(rem.indexOf(i)>-1);
+  if(!rem.length)next=[true,true,true,true,true,true,true,true];
+  return {pages:pages,nextAvail:next};
+}
+function labelHtml(p){
+  var cod=p.type==="cod",tag=cod?"גוביינא · לגבות "+fm(p.codAmount||0):(p.type==="pickup"?"איסוף · חזור בלבד":typeLabel(p.type));
+  return '<div class="lbl"><div class="lt"><span class="lty'+(cod?' cod':'')+'">'+esc(tag)+'</span><span>'+esc(new Date(p.createdAt).toLocaleDateString("he-IL"))+'</span></div>'
+   +'<div class="ln">'+esc(p.name)+'</div><div class="la">'+esc(p.address||"")+'</div><div class="lp" dir="ltr" style="text-align:right">'+esc(p.phone||"")+'</div>'
+   +(p.notes?'<div class="lnote">'+esc(p.notes)+'</div>':'')
+   +'<div class="lb">'+barcodeSvg(p.number,92,15)+'<div class="lnum" dir="ltr">'+esc(p.number||"")+'</div></div></div>';
+}
+function labelScope(kind){
+  if(kind==="sel")return parcels.filter(function(p){return selected[p.id]});
+  if(kind==="shown")return lastList.slice();
+  return parcels.filter(function(p){return p.status==="new"}).sort(function(a,b){return a.createdAt-b.createdAt});
+}
+function openLabels(){
+  var av=getAvail(),cal=getCal(),sc=selCount(),m=document.getElementById("modal");
+  var cn=labelScope("new").length,cs=labelScope("shown").length;
+  m.innerHTML='<div class="modal" id="ov"><div class="sheet" role="dialog" aria-label="מדבקות"><h2 style="margin:0 0 4px">הדפסת מדבקות</h2><p style="color:var(--mute);margin:0">70×105 מ"מ, 8 בדף A4, עם ברקוד של מספר החבילה.</p>'
+  +'<div class="sub">מה להדפיס</div>'
+  +'<label class="chk"><input type="radio" name="ls" value="new"'+(sc?'':' checked')+'>כל החדשים שלא נאספו ('+cn+')</label>'
+  +'<label class="chk"><input type="radio" name="ls" value="sel"'+(sc?' checked':'')+'>המשלוחים שסימנתי בשורות ('+sc+')</label>'
+  +'<label class="chk"><input type="radio" name="ls" value="shown">הרשימה המוצגת כעת ('+cs+')</label>'
+  +'<div class="sub">מיקומים פנויים בדף (מבט על הדף: 1 למעלה משמאל)</div><div dir="ltr" style="display:grid;grid-template-columns:1fr 1fr;gap:6px">'
+  +[0,1,2,3,4,5,6,7].map(function(i){return '<label class="chk" style="margin:0;justify-content:center"><input type="checkbox" id="lp'+i+'"'+(av[i]?' checked':'')+'> '+(i+1)+'</label>'}).join("")+'</div>'
+  +'<div style="display:flex;gap:8px;margin-top:6px"><button class="btn sec" id="lpAll" style="flex:1">כל המיקומים</button><button class="btn sec" id="lpNone" style="flex:1">נקה</button></div>'
+  +'<div class="sub">כיול הדפסה (מ"מ)</div><div style="display:grid;grid-template-columns:1fr 1fr;gap:8px"><div><label for="lcTop">מרווח עליון</label><input id="lcTop" type="number" step="0.5" value="'+cal.top+'"></div><div><label for="lcLeft">מרווח שמאלי</label><input id="lcLeft" type="number" step="0.5" value="'+cal.left+'"></div></div>'
+  +'<div id="lbSum" class="sub"></div>'
+  +'<div style="display:grid;gap:8px;margin-top:8px"><button class="btn big" id="lbGo">תצוגה והדפסה</button><button class="btn big sec" id="cancel">סגירה</button></div></div></div>';
+  var read=function(){return {kind:m.querySelector('input[name="ls"]:checked').value,avail:[0,1,2,3,4,5,6,7].map(function(i){return document.getElementById("lp"+i).checked}),cal:{top:parseFloat(document.getElementById("lcTop").value)||0,left:parseFloat(document.getElementById("lcLeft").value)||0}}};
+  var upd=function(){var r=read(),n=labelScope(r.kind).length,pl=labelPlan(n,r.avail);document.getElementById("lbSum").textContent=n+" מדבקות · "+pl.pages.length+" דפים"};
+  Array.prototype.forEach.call(m.querySelectorAll("input"),function(x){x.addEventListener("change",upd)});upd();
+  document.getElementById("cancel").onclick=closeForm;
+  document.getElementById("ov").onclick=function(e){if(e.target.id==="ov")closeForm()};
+  document.getElementById("lpAll").onclick=function(){for(var i=0;i<8;i++)document.getElementById("lp"+i).checked=true;upd()};
+  document.getElementById("lpNone").onclick=function(){for(var i=0;i<8;i++)document.getElementById("lp"+i).checked=false;upd()};
+  document.getElementById("lbGo").onclick=function(){
+    var r=read(),list=labelScope(r.kind);
+    if(!list.length){toast("אין משלוחים להדפסה");return}
+    try{localStorage.setItem("labelAvail",JSON.stringify(r.avail));localStorage.setItem("labelCal",JSON.stringify(r.cal))}catch(e){}
+    closeForm();showLabels(list,r.avail,r.cal);
+  };
+}
+function showLabels(list,avail,cal){
+  var old=document.getElementById("labelView");if(old)old.remove();
+  var pl=labelPlan(list.length,avail),v=document.createElement("div");v.id="labelView";
+  var z=Math.min(1,(window.innerWidth-24)/794);
+  v.innerHTML='<div class="noprint" style="display:flex;gap:8px;flex-wrap:wrap;margin-bottom:10px;position:sticky;top:0;z-index:2"><button class="btn" id="lvPrint">🖨️ הדפסה</button><button class="btn sec" id="lvUsed">✔ עדכן מיקומים שנוצלו</button><button class="btn sec" id="lvClose">סגירה</button><span style="align-self:center">'+list.length+' מדבקות · '+pl.pages.length+' דפים</span></div>'
+   +pl.pages.map(function(pg){return '<div class="pwrap" style="zoom:'+z+'"><div class="lpage"><div class="lgrid" style="top:'+cal.top+'mm;left:'+cal.left+'mm">'+pg.cells.map(function(ix,pos){return ix===null?'':labelHtml(list[ix]).replace('<div class="lbl">','<div class="lbl" style="left:'+(pos%2)*105+'mm;top:'+Math.floor(pos/2)*70+'mm">')}).join("")+'</div></div></div>'}).join("");
+  document.body.appendChild(v);
+  document.getElementById("lvClose").onclick=function(){v.remove()};
+  document.getElementById("lvPrint").onclick=function(){try{window.print()}catch(e){toast("ההדפסה נחסמה בדפדפן")}};
+  document.getElementById("lvUsed").onclick=function(){try{localStorage.setItem("labelAvail",JSON.stringify(pl.nextAvail))}catch(e){}toast("המיקומים עודכנו לפי מה שנותר בדף")};
+}
 function openMsg(){
   var m=document.getElementById("modal");
   var fields=[["text","הודעה כללית (כפתורי וואטסאפ ו-SMS בכרטיס)",tpl],["pickup","פתיחת בקשת איסוף (כפתור 📲 בכרטיס איסוף)",AUTO.pickup],["picked","שינוי סטטוס ל\"נאסף\"",AUTO.picked],["enroute","שינוי סטטוס ל\"בדרך ללקוח\"",AUTO.enroute],["done","שינוי סטטוס ל\"נמסר\"",AUTO.done]];
@@ -718,6 +827,9 @@ document.addEventListener("click",function(e){
   if(t.id==="setbtn"){openSet();return}
   if(t.dataset.pv){openPhoto(t.dataset.pv);return}
   if(t.dataset.pick){openPick(t.dataset.pick);return}
+  if(t.dataset.exp){expanded[t.dataset.exp]=!expanded[t.dataset.exp];render();return}
+  if(t.id==="labbtn"){openLabels();return}
+  if(t.id==="modebtn"){viewMode=viewMode==="rows"?"cards":"rows";try{localStorage.setItem("viewMode",viewMode)}catch(e){}render();return}
   if(t.dataset.fail){openFail(t.dataset.fail);return}
   if(t.dataset.wa){openWa(t.dataset.id,t.dataset.wa);return}
   if(t.dataset.f){filter=t.dataset.f;render();return}
@@ -726,6 +838,8 @@ document.addEventListener("click",function(e){
 });
 document.addEventListener("change",function(e){
   var d=e.target.dataset;if(!d)return;
+  if(d.sel){selected[d.sel]=e.target.checked;render();return}
+  if(e.target.id==="selAll"){var ck=e.target.checked;lastList.forEach(function(p){selected[p.id]=ck});render();return}
   if(d.st){var sv=e.target.value;if(sv==="failed"){openFail(d.st);render();return}if(sv==="cancelled"){openCancel(d.st);render();return}setStatus(d.st,sv)}
   if(d.cn)setCourierNote(d.cn,e.target.value);
   if((e.target.id==="photoIn"||e.target.id==="photoCam")&&e.target.files&&e.target.files[0]&&window.pickId){var id=window.pickId;toast("מעבד תמונה...");shrink(e.target.files[0],function(url){setPhoto(id,url);toast("התמונה נשמרה")})}
@@ -759,6 +873,7 @@ document.addEventListener("click",function(e){
   setTimeout(function(){if(!left)openContact(kind,pid)},900);
 });
 try{document.getElementById("verNum").textContent=APP_VERSION}catch(e){}
+try{viewMode=localStorage.getItem("viewMode")||"rows"}catch(e){}
 applyTheme();loadNotifs();updateBell();initInstall();
 document.getElementById("q").addEventListener("input",function(){query=this.value;render()});
 try{var tt=localStorage.getItem("tpl");if(tt)tpl=tt}catch(e){}
